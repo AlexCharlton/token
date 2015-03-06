@@ -1,0 +1,23 @@
+extends layout
+
+block content
+  div(ng-controller='Organization')
+    h1 {{org.name}}
+    ul 
+      li
+        a(href='{{org.website}}') {{org.website}}
+      li {{(org.active) ? 'Active' : 'Not active'}}
+      li Tags
+        ul 
+          li(ng-repeat='tag in org.tags') {{tag}}
+    div
+      img(ng-src='{{logo.file}}')
+      h2 {{logo.name}}
+      ul 
+        li {{logo.date | date:'d MMMM yyyy'}}
+        li {{(logo.active) ? 'Active' : 'Not active'}}
+    h2 Other logos from {{org.name}}
+    ul(class='logo-list')
+      li(ng-repeat='logo in org.logos')
+        a(ng-href="/org/{{org._id}}#{{logo._id}}")
+          img(ng-src='{{logo.file}}')
