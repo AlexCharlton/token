@@ -20,4 +20,4 @@ block content
     ul(class='logo-list')
       li(ng-repeat='logo in org.logos')
         a(ng-href="/org/{{org._id}}#{{logo._id}}")
-          img(ng-src='{{logo.file}}')
+          img(ng-src='/{{logo.file}}')

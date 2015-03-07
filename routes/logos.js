@@ -11,7 +11,7 @@ var fs = require('fs')
 var path = require('path')
 var _ = require('underscore');
 
-var image_store = 'img_store'
+var image_store = 'img_store/'
 //// Organizations
 // _id
 // name
@@ -153,8 +153,10 @@ router.get('/flagged', function send_org(req, res, next) {
 
 //// Logos
 // _id
+// name
 // file
 // date
+// retrieved_from
 // features
 // active?
 // review?
@@ -184,7 +186,7 @@ router.get('/org/:org/:logo', function send_logo(req, res, next) {
 });
 
 var resize_max = 200
-function mv_resize_image(src, dest){
+function mv_resize_image(src, dest, cb){
     // Make sure smallest dimension isn't larger than resize_max
     mkdirp.sync(path.dirname(dest))
     gm(src)
@@ -204,6 +206,7 @@ function mv_resize_image(src, dest){
                     if (err) return console.error(err)
                     console.log("Added image to store: ", dest)
                     fs.unlink(src)
+                    cb()
                 })
         });
 }
@@ -213,39 +216,45 @@ router.post('/org/:org', function create_logo(req, res, next) {
     db.orgs.find({_id: req.params.org}, function(err, orgs){
         if (err || orgs.length == 0) {
             // TODO proper logging
-            console.error("No organization found: " + req.params.org);
-            return res.status(404).send("No such organization: " + req.params.org);
+            console.error("No organization found: " + req.params.org)
+            return res.status(404).send("No such organization: " + req.params.org)
         }
         var org = orgs[0]
-        var id = shortid.generate();
+        var id = shortid.generate()
         var l = JSON.parse(req.body.logo)
-        var file = req.files.image;
-        var name = l.name;
-        var date = l.date;
-        var retrieved_from = l.retrieved_from;
-        var features = false; // TODO 
-        var active = l.active;
-        active = (typeof active == 'undefined') ? true : active;
+        var file = req.files.image
+        var name = l.name
+        var date = l.date
+        var retrieved_from = l.retrieved_from
+        var active = l.active
+        active = (typeof active == 'undefined') ? true : active
         active = (org.active) ? active : false
-        name = (name) ? name : org.name;
-        console.log(file)
+        name = (name) ? name : org.name
         file = (file) ? file[0] : file
-        var review = false; // TODO set based on match?
+        var review = false // TODO set based on match?
         if (!(file && date)){
-            return res.status(400).send("Missing form data in logo creation: " + file + ' ' + date);
+            return res.status(400).send("Missing form data in logo creation: " + file + ' ' + date)
         }
-        var src = '/' + path.join(image_store, org._id, file.name)
-        mv_resize_image(file.path, './public' + src)
-        var logo = {_id: id, file: src, date: date, features: features,
-                    name: name, org: org._id, retrieved_from: retrieved_from,
-                    active: active, review: review};
+        var src = path.join(image_store,
+                            org._id, 
+                            path.basename(file.name, 
+                                          path.extname(file.name)) + '.png')
+        mv_resize_image(
+            file.path, './public/' + src, 
+            function(){
+                var logo = {_id: id, file: src, date: date, features: null,
+                            name: name, org: org._id, 
+                            retrieved_from: retrieved_from,
+                            active: active, review: review}
+                db.logos.insert(logo, function(err, value){
+                    res.status(201).send(id)
+                    // features.extract(id)
+                })
+            })
         db.orgs.update({_id: org._id},
-                       {$push: {logos: id}});
-        db.logos.insert(logo, function(err, value){
-            res.status(201).send(id);
-        });
-    });
-});
+                       {$push: {logos: id}})
+    })
+})
 
 router.put('/org/:org/:logo', function update_logo(req, res, next) {
     //update logo
