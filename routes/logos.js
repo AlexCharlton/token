@@ -12,13 +12,24 @@ var _ = require('underscore');
 var features = require('../build/Release/logo_features.node');
 
 var router = express.Router();
-var db = mongojs('token', ['tags', 'orgs', 'logos']);
+var database_server = process.env['TOKEN_DB_SERVER'] || 'localhost'
+var database_name = process.env['TOKEN_DB'] || 'token'
+var db = mongojs(database_server + "/" + database_name, 
+                 ['tags', 'orgs', 'logos'])
 
 var logo_src_base = '/img_store/'
 var logo_store = path.join('./public', logo_src_base)
 var search_src_base = '/search_store/'
 var search_store = path.join('./public', search_src_base)
 var download_dir = 'downloads/'
+
+function not_admin(pass, res){
+    if (pass != process.env['TOKEN_PASSWORD']){
+        res.status(403).end()
+        return true
+    }
+    return false
+}
 
 //// Organizations
 // _id
@@ -75,6 +86,7 @@ router.get('/org/:org', function send_org(req, res, next) {
 });
 
 router.post('/org', function create_org(req, res, next) {
+    if (not_admin(req.body.password, res)) return
     // add new org
     var id = shortid.generate();
     var o = JSON.parse(req.body.org)
@@ -98,6 +110,7 @@ router.post('/org', function create_org(req, res, next) {
 
 //// TODO Disabled until updated
 // router.put('/org/:org', function update_org(req, res, next) {
+    // TODO ADMIN
 //     // update org
 //     db.orgs.find({_id: req.params.org}, function(err, orgs){
 //         if (err || orgs.length == 0) {
@@ -126,6 +139,7 @@ router.post('/org', function create_org(req, res, next) {
 // });
 
 router.delete('org/:org', function rm_org(req, res, next) {
+    if (not_admin(req.params.password, res)) return
     // Remove org
     db.orgs.find({_id: req.params.org}, function(err, orgs){
         if (err || orgs.length == 0) {
@@ -220,6 +234,7 @@ function mv_resize_image(src, dest, succ, error){
 }
 
 router.post('/org/:org', function create_logo(req, res, next) {
+    if (not_admin(req.body.password, res)) return
     // add new logo
     db.orgs.find({_id: req.params.org}, function(err, orgs){
         if (err || orgs.length == 0) {
@@ -259,7 +274,7 @@ router.post('/org/:org', function create_logo(req, res, next) {
                             active: active, review: review}
                 db.logos.insert(logo, function(err, value){
                     res.status(201).send(id)
-                    features.extract(id, 'token.logos')
+                    features.extract(id, database_name + '.logos')
                 })
             },
             function error(e){
@@ -275,6 +290,7 @@ router.post('/org/:org', function create_logo(req, res, next) {
 
 //// TODO Disabled until updated
 // router.put('/org/:org/:logo', function update_logo(req, res, next) {
+    // TODO ADMIN
 //     //update logo
 //     db.logos.find({_id: req.params.logo}, function(err, logos){
 //         if (err || logos.length == 0) {
@@ -317,6 +333,7 @@ function rm_logo(logo, org_id){
 }
 
 router.delete('org/:org/:logo', function rm_logo(req, res, next) {
+    if (not_admin(req.params.password, res)) return
     // Remove logo
     var logo = req.params.logo;
     db.orgs.find({_id: req.params.org}, function(err, orgs){
@@ -345,7 +362,7 @@ var search_results = function(src, id, res){
     mv_resize_image(
         src, dest,
         function success(){
-            var results = features.search(dest, 'token.logos')
+            var results = features.search(dest, database_name + '.logos')
             res.type('json').send('{ "id" : "' + id + 
                                   '", "src" : "' + web_src +
                                   '", "results" : ' + results + ' }')
