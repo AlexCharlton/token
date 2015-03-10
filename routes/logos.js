@@ -14,8 +14,10 @@ var features = require('../build/Release/logo_features.node');
 var router = express.Router();
 var db = mongojs('token', ['tags', 'orgs', 'logos']);
 
-var image_store = 'img_store/'
-var search_store = 'public/search_store/'
+var logo_src_base = '/img_store/'
+var logo_store = path.join('./public', logo_src_base)
+var search_src_base = '/search_store/'
+var search_store = path.join('./public', search_src_base)
 var download_dir = 'downloads/'
 
 //// Organizations
@@ -94,33 +96,34 @@ router.post('/org', function create_org(req, res, next) {
     });
 });
 
-router.put('/org/:org', function update_org(req, res, next) {
-    // update org
-    db.orgs.find({_id: req.params.org}, function(err, orgs){
-        if (err || orgs.length == 0) {
-            // TODO proper logging
-            console.error("No organization found: " + req.params.org);
-            return res.status(404).send("No such organization: " + req.params.org);
-        }
-        var org = orgs[0];
-        var old_tags = org.tags;
-        var name = req.params.name || org.name;
-        var tags = req.params.tags || org.tags;
-        var website = req.params.tags || org.website;
-        var active = req.params.active;
-        var review = false; // TODO set based on name match?
-        active = (typeof active == 'undefined') ? org.active : active;
-        review = (typeof review == 'undefined') ? org.review : review;
-        rm_org_from_tags(name, _.difference(old_tags, tags));
-        db.orgs.update({_id: req.params.org}, 
-                       {$set: {name: name,
-                               tags: tags,
-                               website: website,
-                               active: active,
-                               review: review}});
-        res.status(204).end();
-    });
-});
+//// TODO Disabled until updated
+// router.put('/org/:org', function update_org(req, res, next) {
+//     // update org
+//     db.orgs.find({_id: req.params.org}, function(err, orgs){
+//         if (err || orgs.length == 0) {
+//             // TODO proper logging
+//             console.error("No organization found: " + req.params.org);
+//             return res.status(404).send("No such organization: " + req.params.org);
+//         }
+//         var org = orgs[0];
+//         var old_tags = org.tags;
+//         var name = req.params.name || org.name;
+//         var tags = req.params.tags || org.tags;
+//         var website = req.params.tags || org.website;
+//         var active = req.params.active;
+//         var review = false; // TODO set based on name match?
+//         active = (typeof active == 'undefined') ? org.active : active;
+//         review = (typeof review == 'undefined') ? org.review : review;
+//         rm_org_from_tags(name, _.difference(old_tags, tags));
+//         db.orgs.update({_id: req.params.org}, 
+//                        {$set: {name: name,
+//                                tags: tags,
+//                                website: website,
+//                                active: active,
+//                                review: review}});
+//         res.status(204).end();
+//     });
+// });
 
 router.delete('org/:org', function rm_org(req, res, next) {
     // Remove org
@@ -240,20 +243,23 @@ router.post('/org/:org', function create_logo(req, res, next) {
         if (!(file && date)){
             return res.status(400).send("Missing form data in logo creation: " + file + ' ' + date)
         }
-        var src = path.join(image_store,
+        var file_path = path.join(logo_store,
                             org._id, 
-                            path.basename(file.name, 
-                                          path.extname(file.name)) + '.png')
+                            id + '.png')
+        var src = path.join(logo_src_base,
+                            org._id, 
+                            id + '.png')
         mv_resize_image(
-            file.path, './public/' + src, 
+            file.path, file_path, 
             function success(){
-                var logo = {_id: id, file: src, date: date, features: null,
+                var logo = {_id: id, file: file_path, src: src,
+                            date: date, features: null,
                             name: name, org: org._id, 
                             retrieved_from: retrieved_from,
                             active: active, review: review}
                 db.logos.insert(logo, function(err, value){
                     res.status(201).send(id)
-                    features.extract(id, './public/')
+                    features.extract(id, 'token.logos')
                 })
             },
             function error(e){
@@ -267,40 +273,47 @@ router.post('/org/:org', function create_logo(req, res, next) {
     })
 })
 
-router.put('/org/:org/:logo', function update_logo(req, res, next) {
-    //update logo
-    db.logos.find({_id: req.params.logo}, function(err, logos){
-        if (err || logos.length == 0) {
-            // TODO proper logging
-            console.error("No logo found: " + req.params.logo);
-            return res.status(404).send("No such logo: " + req.params.logo);
-        }
-        var logo = logos[0];
-        // if new file
-          // req.files
-          // TODO convert logo to uniform size, type; save
-          // var features = features();
-        // else
-        var features = false;
-        var file = req.params.file || logo.file;
-        var date = req.params.date || logo.date;
-        var active = req.params.active;
-        var review = false; // TODO set based on match?
-        active = (typeof active == 'undefined') ? logo.active : active;
-        review = (typeof review == 'undefined') ? logo.review : review;
-        db.logos.update({_id: logo._id}, 
-                       {$set: {file: file,
-                               date: date,
-                               features: features,
-                               active: active,
-                               review: review}});
-        res.status(204).end();
-    });
-});
+//// TODO Disabled until updated
+// router.put('/org/:org/:logo', function update_logo(req, res, next) {
+//     //update logo
+//     db.logos.find({_id: req.params.logo}, function(err, logos){
+//         if (err || logos.length == 0) {
+//             // TODO proper logging
+//             console.error("No logo found: " + req.params.logo);
+//             return res.status(404).send("No such logo: " + req.params.logo);
+//         }
+//         var logo = logos[0];
+//         // if new file
+//           // req.files
+//           // TODO convert logo to uniform size, type; save
+//           // var features = features();
+//         // else
+//         var features = false;
+//         var file = req.params.file || logo.file;
+//         var date = req.params.date || logo.date;
+//         var active = req.params.active;
+//         var review = false; // TODO set based on match?
+//         active = (typeof active == 'undefined') ? logo.active : active;
+//         review = (typeof review == 'undefined') ? logo.review : review;
+//         db.logos.update({_id: logo._id}, 
+//                        {$set: {file: file,
+//                                date: date,
+//                                features: features,
+//                                active: active,
+//                                review: review}});
+//         res.status(204).end();
+//     });
+// });
 
 function rm_logo(logo, org_id){
-    db.logos.remove({_id: logo});
-    // TODO remove image from store
+    db.logos.find({_id: logo}, function(err, logos){
+        if (err || logos.length == 0) {
+            // TODO proper logging
+            console.error("Tried to delete logo, but wasn't found: " + logo);
+        }
+        fs.unlink(logos[0].path)
+        db.logos.remove({_id: logo});
+    });
 }
 
 router.delete('org/:org/:logo', function rm_logo(req, res, next) {
@@ -326,26 +339,32 @@ router.delete('org/:org/:logo', function rm_logo(req, res, next) {
 
 
 //// Search
+var search_results = function(src, id, res){
+    var dest = path.join(search_store, id + '.png')
+    var web_src = path.join(search_src_base, id + '.png')
+    mv_resize_image(
+        src, dest,
+        function success(){
+            var results = features.search(dest, 'token.logos')
+            res.type('json').send('{ "id" : "' + id + 
+                                  '", "src" : "' + web_src +
+                                  '", "results" : ' + results + ' }')
+        },
+        function error(e){
+            console.error(e)
+            fs.unlink(src)
+            res.status(400).send(e)
+        })
+}
+
+
 router.post('/search', function send_results(req, res, next){
     var search_id = shortid.generate()
     var logo = req.files.logo
     if (logo.length == 0){
         return res.status(400).send("Missing logo in search");
     }
-    var search_path = path.join(search_store, search_id + '.png')
-    mv_resize_image(
-        logo[0].path, search_path,
-        function success(){
-            var results = features.search(search_path, './public')
-            res.type('json').send('{ "id" : "' + search_id + 
-                                  '", "results" : ' + results + ' }')
-        },
-        function error(e){
-            console.error(e)
-            fs.unlink(logo[0].path)
-            res.status(400).send(e)
-        }
-    )
+    search_results(logo[0].path, search_id, res)
     // TODO memoize results (use logo[0].originalname as well)
 })
 
@@ -367,32 +386,19 @@ router.get('/search', function send_results(req, res, next){
     var search_id = shortid.generate()
     var logo = req.query.logo
     var download_path = path.join(download_dir, search_id)
-    var search_path = path.join(search_store, search_id + '.png')
     download(logo, download_path, function(err){
         if (err){
             console.error(err)
             return res.status(400).send(e)
         }
-        mv_resize_image(
-            download_path, search_path,
-            function success(){
-                var results = features.search(search_path, './public')
-                res.type('json').send('{ "id" : "' + search_id + 
-                                      '", "results" : ' + results + ' }')
-            },
-            function error(e){
-                console.error(e)
-                fs.unlink(download_path)
-                res.status(400).send(e)
-            })
+        search_results(download_path, search_id, res)
     })
     // TODO memoize
 })
 
 router.get('/search/:search', function send_results(req, res, next){
-    features.search(image, './public')
     var search_id = req.params.search
-
+    /// TODO 
 })
 
 

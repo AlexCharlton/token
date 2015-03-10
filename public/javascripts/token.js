@@ -91,7 +91,7 @@ api.factory('Search', ['$http', '$resource', function ($http, $resource){
 app.controller('Main', ['$scope', 'Stats', 'Search', function($scope, Stats, Search){
     $scope.logos = "no search"
     var display_results = function(results){
-        $scope.search = results.id
+        $scope.search = {id: results.id, src: results.src}
         if (_.isEmpty(results.results)){
             $scope.logos = "none"
         } else {

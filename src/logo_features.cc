@@ -5,7 +5,7 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/features2d/features2d.hpp"
-#include "opencv2/nonfree/nonfree.hpp"
+#include "opencv2/xfeatures2d/nonfree.hpp"
 #include "mongo/client/dbclient.h"
 
 #define CONNECTION_FAIL -1
@@ -18,6 +18,7 @@
 
 using namespace std;
 using namespace cv;
+using namespace cv::xfeatures2d;
 using mongo::BSONElement;
 using mongo::BSONObj;
 using mongo::BSONObjBuilder;
@@ -25,8 +26,6 @@ using mongo::BSONObjIterator;
 using mongo::BSONArray;
 using mongo::BSONArrayBuilder;
 using mongo::DBClientCursor;
-
-const string Logos = "token.logos";
 
 //// Feature extraction
 // void get_histogram(Mat &im, Mat &hist){
@@ -74,11 +73,9 @@ int get_histogram(Mat &im, float *histogram){
 }
 
 void get_descriptors(Mat &im, Mat &desc){
-    //SURF surf(400.0, 3, 3, false);
-    SIFT sift(0);
-    vector<KeyPoint> kp;
-    //surf(im, Mat(), kp, desc);
-    sift(im, Mat(), kp, desc);
+    Ptr<SURF> surf = SURF::create(400.0, 3, 3, false);
+    std::vector<KeyPoint> kp;
+    surf->detectAndCompute(im, Mat(), kp, desc);
 }
 
 void mat_BSON(Mat &mat, BSONObj &bson){
@@ -106,7 +103,7 @@ void hist_BSON(float *hist, int hist_count, BSONObj &bson){
 }
 
 void BSON_mat(Mat &mat, BSONObj bson){
-    vector<int> sizes;
+    std::vector<int> sizes;
     BSONObjIterator arr = bson.getObjectField("size");
     while(arr.more()) {
         sizes.push_back(arr.next().numberInt());
@@ -119,14 +116,14 @@ void BSON_mat(Mat &mat, BSONObj bson){
 }
 
 int BSON_hist(float *hist, BSONObj bson){
-    vector<int> sizes;
+    std::vector<int> sizes;
     BSONObjIterator arr = bson.getObjectField("bins");
     for (int i = 0; i < HIST_BINS; ++i)
         hist[i] = arr.next().Number();
     return bson.getIntField("count");
 }
 
-int extract_features(string logo_id, string image_store, string db_server){
+int extract_features(string logo_id, string db_name, string db_server){
     // Find logo
     mongo::DBClientConnection db;
     try {
@@ -135,13 +132,12 @@ int extract_features(string logo_id, string image_store, string db_server){
         return CONNECTION_FAIL;
     }
     auto_ptr<DBClientCursor> cursor =
-        db.query(Logos, MONGO_QUERY("_id" << logo_id));
+        db.query(db_name, MONGO_QUERY("_id" << logo_id));
     if (!cursor->more()) return NO_LOGO;
     BSONObj p = cursor->next();
-    string file = image_store + p.getStringField("file");
     // Get image features
     Mat im, desc;
-    im = imread(file , CV_LOAD_IMAGE_COLOR);
+    im = imread(p.getStringField("file"), CV_LOAD_IMAGE_COLOR);
     if (im.empty()) return NO_IMAGE;
     float hist[HIST_BINS];
     int hist_count = get_histogram(im, &hist[0]);
@@ -155,7 +151,7 @@ int extract_features(string logo_id, string image_store, string db_server){
     b.append("descriptors", descriptors);
     b.append("histogram", histogram);
     b.append("aspect", aspect);
-    db.update(Logos,
+    db.update(db_name,
               BSON("_id" << logo_id),
               BSON("$set" << BSON( "features" << b.obj())));
     return 0;
@@ -165,10 +161,10 @@ int extract_features(string logo_id, string image_store, string db_server){
 float descriptor_distance(Mat desc1, Mat desc2){
     //FlannBasedMatcher matcher;
     BFMatcher matcher(NORM_L1);
-    vector<DMatch> matches;
+    std::vector<DMatch> matches;
     matcher.match(desc1, desc2, matches);
     float r = 0.0;
-    vector<DMatch>::iterator it;
+    std::vector<DMatch>::iterator it;
     for(it = matches.begin(); it != matches.end(); ++it){
         float d = (*it).distance;
         r += (d*d);
@@ -221,7 +217,7 @@ float feature_distance(float *hist1, float *hist2,
                        Mat desc1, Mat desc2, 
                        float aspect1, float aspect2){
     float desc_dist = descriptor_distance(desc1, desc2);
-    //float hist_dist = histogram_distance(hist1, hist2, h_count1, h_count2);
+    float hist_dist = histogram_distance(hist1, hist2, h_count1, h_count2);
     //float a = aspect1-aspect2;
     //float aspect_dist = (a*a)/(aspect1 + aspect2);
     return //descriptor_c * desc_dist
@@ -233,7 +229,7 @@ float feature_distance(float *hist1, float *hist2,
 #include <chrono>
 using namespace std::chrono;
 
-int search_features(string image, string image_store, string db_server, BSONArray &bson){
+int search_features(string image, string db_name, string db_server, BSONArray &bson){
     mongo::DBClientConnection db;
     try {
         db.connect(db_server);
@@ -252,7 +248,7 @@ int search_features(string image, string image_store, string db_server, BSONArra
     monotonic_clock::time_point t1 = monotonic_clock::now();
     int i = 0;
     BSONArrayBuilder a;
-    auto_ptr<DBClientCursor> cursor = db.query(Logos, BSONObj());
+    auto_ptr<DBClientCursor> cursor = db.query(db_name, BSONObj());
     while(cursor->more()) {
         i++;
         BSONObj logo = cursor->next();
@@ -286,14 +282,14 @@ NAN_METHOD(Extract){
     NanScope();
     string server = "localhost";
     if (args.Length() < 2) {
-        return NanThrowError("Expected logo ID, image store location");
+        return NanThrowError("Expected logo ID, db name");
     }
     if (args.Length() >= 3) {
         server = *NanAsciiString(args[2]);
     }
     string logo_id = *NanAsciiString(args[0]);
-    string image_store = *NanAsciiString(args[1]);
-    int result = extract_features(logo_id, image_store, server);
+    string db_name = *NanAsciiString(args[1]);
+    int result = extract_features(logo_id, db_name, server);
     if (result < 0){
         switch (result){
         case NO_IMAGE: 
@@ -314,15 +310,15 @@ NAN_METHOD(Search){
     NanScope();
     string server = "localhost";
     if (args.Length() < 2) {
-        return NanThrowError("Expected logo ID, image store location");
+        return NanThrowError("Expected logo ID, db_name");
     }
     if (args.Length() >= 3) {
         server = *NanAsciiString(args[2]);
     }
     string image = *NanAsciiString(args[0]);
-    string image_store = *NanAsciiString(args[1]);
+    string db_name = *NanAsciiString(args[1]);
     BSONArray bson;
-    int result = search_features(image, image_store, server, bson);
+    int result = search_features(image, db_name, server, bson);
     if (result < 0){
         switch (result){
         case NO_IMAGE: 

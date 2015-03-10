@@ -11,7 +11,7 @@ block content
         ul 
           li(ng-repeat='tag in org.tags') {{tag}}
     div
-      img(ng-src='/{{logo.file}}')
+      img(ng-src='{{logo.src}}')
       h2 {{logo.name}}
       ul 
         li {{logo.date | date:'d MMMM yyyy'}}
@@ -20,4 +20,4 @@ block content
     ul(class='logo-list')
       li(ng-repeat='logo in org.logos')
         a(ng-href="/org/{{org._id}}#{{logo._id}}")
-          img(ng-src='/{{logo.file}}')
+          img(ng-src='{{logo.src}}')
