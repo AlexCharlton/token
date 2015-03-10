@@ -47,7 +47,72 @@ api.factory('Org', ['$resource', '$location', function($resource, $location){
     return {get:get, logo:logo}
 }])
 
-app.controller('Main', ['$scope', 'Stats', function($scope, Stats){
+api.factory('Search', ['$http', '$resource', function ($http, $resource){
+    var Search = $resource('/r/search') 
+
+    var distance_sort = function(a, b){
+        return a.distance - b.distance
+    }
+
+    var process_results = function(r){
+        a = _.values(r.results).sort(distance_sort)
+        r.results = a
+        return r
+    }
+
+    var upload = function(file, cb, err){
+        var fd = new FormData()
+        fd.append('logo', file)
+        $http.post('/r/search', fd, {
+            transformRequest: angular.identity,
+            headers: {'Content-Type': undefined}
+        })
+            .success(function(res){
+                cb(process_results(res))
+            })
+            .error(function(res){
+                err(res)
+            })
+    }
+
+    var url = function(url, callback, error_callback){
+        var results = Search.get(
+            {logo: url}, 
+            function search(){
+                callback(process_results(results))
+            },
+            error_callback)
+    }
+
+    return { uploadLogoSearch: upload,
+             urlSearch: url }
+}])
+
+app.controller('Main', ['$scope', 'Stats', 'Search', function($scope, Stats, Search){
+    $scope.logos = "no search"
+    var display_results = function(results){
+        $scope.search = results.id
+        if (_.isEmpty(results.results)){
+            $scope.logos = "none"
+        } else {
+            $scope.logos = results.results
+        }
+    }
+
+    var search_error = function(results){
+        $scope.logos = "error"
+        console.error(results)
+    }
+
+    $scope.logoSearch = function(url){
+        var file = $scope.logo
+        if (file){
+            Search.uploadLogoSearch(file, display_results, search_error)
+        } else {
+            Search.urlSearch(url, display_results, search_error)
+        }
+    }
+
     Stats(function(result){
         $scope.n_logos = result.logos
         $scope.n_orgs = result.orgs
@@ -70,3 +135,19 @@ app.controller(
              },
              function(err){ $window.location.href = '/404' })
      }])
+
+app.directive('fileModel', ['$parse', function ($parse) {
+    return {
+        restrict: 'A',
+        link: function(scope, element, attrs) {
+            var model = $parse(attrs.fileModel)
+            var modelSetter = model.assign
+            
+            element.bind('change', function(){
+                scope.$apply(function(){
+                    modelSetter(scope, element[0].files[0])
+                })
+            })
+        }
+    }
+}])

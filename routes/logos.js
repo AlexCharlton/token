@@ -1,17 +1,23 @@
 var express = require('express');
-var router = express.Router();
 var mongojs = require('mongojs');
-var db = mongojs('token', ['tags', 'orgs', 'logos']);
 var shortid = require('shortid');
 var multer  = require('multer');
 var async  = require('async');
 var mkdirp  = require('mkdirp');
 var gm  = require('gm');
 var fs = require('fs')
+var http = require('http')
 var path = require('path')
 var _ = require('underscore');
+var features = require('../build/Release/logo_features.node');
+
+var router = express.Router();
+var db = mongojs('token', ['tags', 'orgs', 'logos']);
 
 var image_store = 'img_store/'
+var search_store = 'public/search_store/'
+var download_dir = 'downloads/'
+
 //// Organizations
 // _id
 // name
@@ -28,7 +34,6 @@ router.get('/org', function send_orgs(req, res, next) {
         // Return matches of given query
         var r = new RegExp(query, 'i');
         db.orgs
-
             .find({name: r}, function(err, orgs){
                 // TODO check err
                 res.send(orgs);
@@ -186,12 +191,12 @@ router.get('/org/:org/:logo', function send_logo(req, res, next) {
 });
 
 var resize_max = 200
-function mv_resize_image(src, dest, cb){
+function mv_resize_image(src, dest, succ, error){
     // Make sure smallest dimension isn't larger than resize_max
     mkdirp.sync(path.dirname(dest))
     gm(src)
         .size(function (err, size) {
-            if (err) return console.error(err)
+            if (err) return error(err)
             var geom = {}
             if (size.width > size.height){
                 geom.width = null
@@ -203,10 +208,10 @@ function mv_resize_image(src, dest, cb){
             gm(src)
                 .resize(geom.width, geom.height, ">")
                 .write(dest, function(err){
-                    if (err) return console.error(err)
+                    if (err) return error(err)
                     console.log("Added image to store: ", dest)
                     fs.unlink(src)
-                    cb()
+                    succ()
                 })
         });
 }
@@ -241,16 +246,22 @@ router.post('/org/:org', function create_logo(req, res, next) {
                                           path.extname(file.name)) + '.png')
         mv_resize_image(
             file.path, './public/' + src, 
-            function(){
+            function success(){
                 var logo = {_id: id, file: src, date: date, features: null,
                             name: name, org: org._id, 
                             retrieved_from: retrieved_from,
                             active: active, review: review}
                 db.logos.insert(logo, function(err, value){
                     res.status(201).send(id)
-                    // features.extract(id)
+                    features.extract(id, './public/')
                 })
-            })
+            },
+            function error(e){
+                console.error(e)
+                fs.unlink(file.path)
+                res.status(400).send(e)
+            }
+        )
         db.orgs.update({_id: org._id},
                        {$push: {logos: id}})
     })
@@ -313,6 +324,76 @@ router.delete('org/:org/:logo', function rm_logo(req, res, next) {
     })
 });
 
+
+//// Search
+router.post('/search', function send_results(req, res, next){
+    var search_id = shortid.generate()
+    var logo = req.files.logo
+    if (logo.length == 0){
+        return res.status(400).send("Missing logo in search");
+    }
+    var search_path = path.join(search_store, search_id + '.png')
+    mv_resize_image(
+        logo[0].path, search_path,
+        function success(){
+            var results = features.search(search_path, './public')
+            res.type('json').send('{ "id" : "' + search_id + 
+                                  '", "results" : ' + results + ' }')
+        },
+        function error(e){
+            console.error(e)
+            fs.unlink(logo[0].path)
+            res.status(400).send(e)
+        }
+    )
+    // TODO memoize results (use logo[0].originalname as well)
+})
+
+var download = function(url, dest, cb) {
+    mkdirp.sync(path.dirname(dest))
+    var file = fs.createWriteStream(dest);
+    var request = http.get(url, function(response) {
+        response.pipe(file);
+        file.on('finish', function() {
+            file.close(cb);
+        });
+    }).on('error', function(err) {
+        fs.unlink(dest);
+        if (cb) cb(err.message);
+    });
+};
+
+router.get('/search', function send_results(req, res, next){
+    var search_id = shortid.generate()
+    var logo = req.query.logo
+    var download_path = path.join(download_dir, search_id)
+    var search_path = path.join(search_store, search_id + '.png')
+    download(logo, download_path, function(err){
+        if (err){
+            console.error(err)
+            return res.status(400).send(e)
+        }
+        mv_resize_image(
+            download_path, search_path,
+            function success(){
+                var results = features.search(search_path, './public')
+                res.type('json').send('{ "id" : "' + search_id + 
+                                      '", "results" : ' + results + ' }')
+            },
+            function error(e){
+                console.error(e)
+                fs.unlink(download_path)
+                res.status(400).send(e)
+            })
+    })
+    // TODO memoize
+})
+
+router.get('/search/:search', function send_results(req, res, next){
+    features.search(image, './public')
+    var search_id = req.params.search
+
+})
 
 
 //// Tags

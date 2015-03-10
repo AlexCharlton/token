@@ -3,4 +3,19 @@ extends layout
 block content
   div(ng-controller='Main')
     h1 Token
-    p Search against {{n_logos}} logos
+    div(class='search')
+      p Search against {{n_logos}} logos
+      form(novalidate)
+        input(type='file', file-model='logo')
+        input(type='text', ng-model='url')
+        input(type='submit', value='Search', ng-click='logoSearch(url)')
+        img(ng-src="/search_store/{{search}}.png")
+    div(ng-switch='logos', class='search-results')
+      div(ng-switch-when='none') No logos
+      div(ng-switch-when='no search') Do a search!
+      div(ng-switch-when='error') Oops!
+      ul(ng-switch-default)
+        li(ng-repeat='logo in logos')
+          a(ng-href="/org/{{logo.logo.org}}#{{logo.logo._id}}")
+            img(ng-src='/{{logo.logo.file}}')
+          | {{logo.distance}}

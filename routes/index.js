@@ -27,7 +27,7 @@ router.get('/about', function(req, res, next) {
 //     res.render('index', { title: 'Token' });
 // });
 
-router.get('/org/:org/', function(req, res, next) {
+router.get('/org/:org', function(req, res, next) {
     res.render('logo');
 });
 

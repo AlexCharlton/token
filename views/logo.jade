@@ -11,7 +11,7 @@ block content
         ul 
           li(ng-repeat='tag in org.tags') {{tag}}
     div
-      img(ng-src='{{logo.file}}')
+      img(ng-src='/{{logo.file}}')
       h2 {{logo.name}}
       ul 
         li {{logo.date | date:'d MMMM yyyy'}}

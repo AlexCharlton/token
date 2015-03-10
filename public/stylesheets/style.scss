@@ -8,3 +8,11 @@ body {
 a {
   color: #00B7FF;
 }
+
+.search-results ul {
+  list-style-type: none;
+}
+
+.search-results ul li {
+  display: inline;
+}
