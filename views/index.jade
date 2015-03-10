@@ -9,7 +9,7 @@ block content
         input(type='file', file-model='logo')
         input(type='text', ng-model='url')
         input(type='submit', value='Search', ng-click='logoSearch(url)')
-        img(ng-src="{{search.src}}.png")
+        img(ng-src="{{search.src}}")
     div(ng-switch='logos', class='search-results')
       div(ng-switch-when='none') No logos
       div(ng-switch-when='no search') Do a search!
