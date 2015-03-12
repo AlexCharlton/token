@@ -5,19 +5,21 @@
 #include "opencv2/features2d/features2d.hpp"
 #include "opencv2/xfeatures2d/nonfree.hpp"
 
+#include "beta_shape.cc"
+
 #define MATCH_CUTOFF 0.05
 #define HIST_CUTOFF 0.02
 #define HIST_BINS 12
 
 using namespace std;
 using namespace cv;
-using namespace cv::xfeatures2d;
+//using namespace cv::xfeatures2d;
 
-typedef struct{
+struct Features{
     unsigned char n_colors;
     unsigned short colors, points;
     float white, sharpness, aspect;
-} Features;
+};
 
 unsigned char bit_count16(unsigned short n){
     unsigned short x = n;
@@ -58,43 +60,77 @@ void get_histogram(Mat &im, Features *f){
     f->n_colors = bit_count16(f->colors);
 }
 
-void get_descriptors(Mat &im, Mat &desc){
-    Ptr<SURF> surf = SURF::create(400.0, 3, 3, false);
-    std::vector<KeyPoint> kp;
-    surf->detectAndCompute(im, Mat(), kp, desc);
+// void get_descriptors(Mat &im, Mat &desc){
+//     Ptr<SURF> surf = SURF::create(400.0, 3, 3, false);
+//     std::vector<KeyPoint> kp;
+//     surf->detectAndCompute(im, Mat(), kp, desc);
+// }
+
+void get_shapes(Mat &im, Contour &shape){ // Remove im
+    Mat gray, edges;
+    cvtColor(im, gray, COLOR_BGR2GRAY);
+    // bilateralFilter(gray.clone(), gray, 11, 17, 17);
+    Canny(gray, edges, 30, 150);
+    Contours contours, outer, inner;
+    Hierarchy hierarchy;
+    findContours(edges, contours, hierarchy, RETR_TREE, CHAIN_APPROX_NONE);
+
+    for(size_t i = 0; i < hierarchy.size(); i++){
+        if (hierarchy[i][3] == -1){
+            outer.push_back(contours[i]);
+        }
+    }
+    Contour beta;
+    get_beta_shape(outer, beta);
+
+    // DRAWING
+    // Contours b;
+    // b.push_back(beta);
+    // cout << beta.size() << endl;
+    // drawContours(im, b, -1, Scalar(225,0,255),
+    //              2, LINE_AA);
+
+
+    /// Get inner shapes that don't match outer ones
+    /// reduce points of all shapes approxPolyDP
+    /// Find points to perimeter ratio: arcLength
+    /// Total points?
+    /// Sort inner points by area, pick ones that make up majority
+    /// Find b-shape of inner points
+
 }
 
-int get_features(string file, Features *f){
+int get_features(string file, Features *f, Contour &shape){
     Mat im;
     im = imread(file, CV_LOAD_IMAGE_COLOR);
     if (im.empty()) return 0;
+    get_shapes(im, shape);
     get_histogram(im, f); // TODO trim image before getting histogram
-    // bilateralFilter(im.clone(), im, 11, 17, 17);
-    // namedWindow( "image", 1 );
-    // imshow( "image", im );
-
-    //float aspect = 1.0 * im.size().width / im.size().height;
+    // namedWindow(file, 1);
+    // imshow(file, im);
+    /// BoundingRect(shape) -> topleft, w, h
+    //f->aspect = 1.0 * w, h;
     return 1;
 }
 
 
 /// Distance
-float descriptor_distance(Mat desc1, Mat desc2){
-    //FlannBasedMatcher matcher;
-    BFMatcher matcher(NORM_L1);
-    std::vector<DMatch> matches;
-    matcher.match(desc1, desc2, matches);
-    float r = 0.0;
-    std::vector<DMatch>::iterator it;
-    for(it = matches.begin(); it != matches.end(); ++it){
-        float d = (*it).distance;
-        r += (d*d);
-    }
-    r /= matches.size();
-    return r;
-}
 
-#include <stdio.h>
+// float descriptor_distance(Mat desc1, Mat desc2){
+//     //FlannBasedMatcher matcher;
+//     BFMatcher matcher(NORM_L1);
+//     vector<DMatch> matches;
+//     matcher.match(desc1, desc2, matches);
+//     float r = 0.0;
+//     vector<DMatch>::iterator it;
+//     for(it = matches.begin(); it != matches.end(); ++it){
+//         float d = (*it).distance;
+//         r += (d*d);
+//     }
+//     r /= matches.size();
+//     return r;
+// }
+
 float match_c = 1.0;
 float color_count_c = 0.5;
 float histogram_distance(Features *f1, Features *f2){

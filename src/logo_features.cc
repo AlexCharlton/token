@@ -75,7 +75,9 @@ int extract_features(string logo_id, string db_name, string db_server){
     BSONObj p = cursor->next();
     // Get image features
     Features features;
-    if (!get_features(p.getStringField("file"), &features)) return NO_IMAGE;
+    Contour shape;
+    if (!get_features(p.getStringField("file"), &features, shape))
+        return NO_IMAGE;
     // Save features
     //mat_BSON(desc, descriptors);
     BSONObjBuilder b;
@@ -88,6 +90,7 @@ int extract_features(string logo_id, string db_name, string db_server){
 }
 
 //// Feature comparison
+typedef pair<string, float> Result;
 
 int search_features(string image, string db_name, string db_server, BSONArray &bson){
     mongo::DBClientConnection db;
@@ -98,11 +101,13 @@ int search_features(string image, string db_name, string db_server, BSONArray &b
     }
     // Get image features
     Features features1;
-    if (!get_features(image, &features1)) return NO_IMAGE;
+    Contour shape1;
+    if (!get_features(image, &features1, shape1)) return NO_IMAGE;
     // Compare against db
     monotonic_clock::time_point t1 = monotonic_clock::now();
     BSONArrayBuilder a;
     auto_ptr<DBClientCursor> cursor = db.query(db_name, BSONObj());
+    vector<Result> v; v.reserve(512);
     while(cursor->more()) {
         BSONObj logo = cursor->next();
         BSONObj f = logo.getObjectField("features");
