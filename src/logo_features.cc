@@ -21,20 +21,6 @@ using mongo::BSONArray;
 using mongo::BSONArrayBuilder;
 using mongo::DBClientCursor;
 
-// void mat_BSON(Mat &mat, BSONObj &bson){
-//     BSONObjBuilder b;
-//     BSONArrayBuilder a;
-//     for (int i = 0; i < mat.dims; ++i)
-//         a << mat.size[i];
-//     b.append("size", a.arr());
-//     b.append("type", mat.type());
-//     b.appendBinData("data", 
-//                     mat.total() * mat.elemSize(),
-//                     mongo::BinDataGeneral,
-//                     mat.data);
-//     bson = b.obj();
-// }
-
 void features_BSON(const Features &features, BSONObjBuilder &b){
     b.appendBinData("struct", 
                     sizeof(Features),
@@ -48,19 +34,6 @@ void contour_BSON(const string field, const Contour &c, BSONObjBuilder &b){
                     mongo::BinDataGeneral,
                     c.data());
 }
-
-// void BSON_mat(Mat &mat, BSONObj bson){
-//     std::vector<int> sizes;
-//     BSONObjIterator arr = bson.getObjectField("size");
-//     while(arr.more()) {
-//         sizes.push_back(arr.next().numberInt());
-//     }
-//     int type = bson.getIntField("type");
-//     mat = Mat(sizes.size(), &sizes[0], type);
-//     int len = 0;
-//     const char *data = bson.getField("data").binData(len);
-//     memcpy(mat.data, data, len);
-// }
 
 void BSON_features(Features &features, BSONObj &bson){
     int len = 0;
@@ -95,13 +68,11 @@ int extract_features(const string logo_id, const string db_name,
     if (!get_features(p.getStringField("file"), features, shape, sub_shape))
         return NO_IMAGE;
     // Save features
-    //mat_BSON(desc, descriptors);
     BSONObjBuilder b;
     b.append("aspect", features.aspect);
     features_BSON(features, b);
     contour_BSON("shape", shape, b);
     contour_BSON("sub_shape", sub_shape, b);
-    //b.append("descriptors", descriptors);
     db.update(db_name,
               BSON("_id" << logo_id),
               BSON("$set" << BSON( "features" << b.obj())));

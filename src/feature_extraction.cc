@@ -250,28 +250,3 @@ void compare_logos(const string a, const string b){
     float dist = print_distance(fa, fb, sa, sb, ssa, ssb);
     if (dist < 0) cout << "No match" << endl;
 }
-
-/*** Descriptors ***/
-// This method is good for finding exact matches, but it is slow and takes up a lot of memory
-
-// float descriptor_distance(Mat desc1, Mat desc2){
-//     //FlannBasedMatcher matcher;
-//     BFMatcher matcher(NORM_L1);
-//     vector<DMatch> matches;
-//     matcher.match(desc1, desc2, matches);
-//     float r = 0.0;
-//     vector<DMatch>::iterator it;
-//     for(it = matches.begin(); it != matches.end(); ++it){
-//         float d = (*it).distance;
-//         r += (d*d);
-//     }
-//     r /= matches.size();
-//     return r;
-// }
-
-// using namespace cv::xfeatures2d;
-// void get_descriptors(Mat &im, Mat &desc){
-//     Ptr<SURF> surf = SURF::create(400.0, 3, 3, false);
-//     std::vector<KeyPoint> kp;
-//     surf->detectAndCompute(im, Mat(), kp, desc);
-// }
