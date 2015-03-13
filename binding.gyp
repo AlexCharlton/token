@@ -3,7 +3,6 @@
         'cflags': [
             '<!@(pkg-config --cflags opencv)',
             '-std=c++0x',
-            '-Wno-deprecated-declarations',
             '-O3'
         ],
         'cflags_cc!': [ '-fno-rtti', # enable rtti

@@ -15,18 +15,26 @@
 #define SIMILAR_CHILDREN 0.1
 #define MIN_CHILD_AREA 10.0
 
-#define MATCH_CUTOFF 0.05
 #define HIST_CUTOFF 0.02
 #define HIST_BINS 12
 
-#define MATCH_C 1.0
+#define ASPECT_CUTOFF 0.3
+#define MAX_ASPECT(A) (A * (1.0 + ASPECT_CUTOFF))
+#define MIN_ASPECT(A) (A / (1.0 + ASPECT_CUTOFF))
+#define MATCH_CUTOFF 1.0
+#define SHAPE_MATCH_CUTOFF 1.5
+#define SHAPE_C 1.0
+#define SUB_SHAPE_C 0.01
+#define COLOR_MATCH_C 1.0
 #define COLOR_COUNT_C 0.5
-#define HISTOGRAM_C 1.0
-#define ASPECT_C 1.0
+#define WHITE_C 1.0
+#define COLOR_C 0.1
+#define ASPECT_C 0.5
+#define SHARPNESS_C 1.0
+#define POINTS_C 0.001
 
 using namespace std;
 using namespace cv;
-//using namespace cv::xfeatures2d;
 
 struct Features{
     unsigned char n_colors;
@@ -43,7 +51,7 @@ unsigned char bit_count16(unsigned short n){
     return x & 0x1F;
 }
 
-/// Extraction
+/*** Extraction ***/
 void get_histogram(Mat &im, Features &f){
     Mat hls, hist;
     cvtColor(im, hls, COLOR_BGR2HLS);
@@ -73,12 +81,6 @@ void get_histogram(Mat &im, Features &f){
     f.n_colors = bit_count16(f.colors);
 }
 
-// void get_descriptors(Mat &im, Mat &desc){
-//     Ptr<SURF> surf = SURF::create(400.0, 3, 3, false);
-//     std::vector<KeyPoint> kp;
-//     surf->detectAndCompute(im, Mat(), kp, desc);
-// }
-
 void get_dissimilar_children(size_t i, const Contour &c, const Contours &cs,
                              const Hierarchy &h, Contours &children){
     int child = h[i][CHILD];
@@ -87,6 +89,7 @@ void get_dissimilar_children(size_t i, const Contour &c, const Contours &cs,
             < SIMILAR_CHILDREN){
             get_dissimilar_children(child, c, cs, h, children);
         } else {
+            // Discard children that are too small
             if (contourArea(cs[child]) > MIN_CHILD_AREA)
                 children.push_back(cs[child]);
         }
@@ -99,7 +102,6 @@ void get_shapes(const Mat &im, Features &f, Contour &shape,
     Mat gray, edges;
     shape.clear(); sub_shape.clear();
     cvtColor(im, gray, COLOR_BGR2GRAY);
-    // bilateralFilter(gray.clone(), gray, 11, 17, 17);
     Canny(gray, edges, 30, 150);
     Contours contours, outer, inner;
     Hierarchy hierarchy;
@@ -113,7 +115,6 @@ void get_shapes(const Mat &im, Features &f, Contour &shape,
         }
     }
     get_beta_shape(outer, shape);
-    /// TODO Sort inner points by area, pick ones that make up majority for sub_shape?
     get_beta_shape(inner, sub_shape);
 
     int total_points = 0;
@@ -142,6 +143,7 @@ int get_features(const string file, Features &f, Contour &shape,
     im = imread(file, CV_LOAD_IMAGE_COLOR);
     if (im.empty()) return 0;
     get_shapes(im, f, shape, sub_shape);
+    if (shape.size() == 0) return 0;
     Rect bb = boundingRect(shape);
     f.aspect = 1.0 * bb.width / bb.height;
     Mat cropped = im(bb);
@@ -150,45 +152,52 @@ int get_features(const string file, Features &f, Contour &shape,
 }
 
 
-/// Distance
+/*** Distance ***/
+// Macro abuse so we can output good data for analysis purposes
 
-// float descriptor_distance(Mat desc1, Mat desc2){
-//     //FlannBasedMatcher matcher;
-//     BFMatcher matcher(NORM_L1);
-//     vector<DMatch> matches;
-//     matcher.match(desc1, desc2, matches);
-//     float r = 0.0;
-//     vector<DMatch>::iterator it;
-//     for(it = matches.begin(); it != matches.end(); ++it){
-//         float d = (*it).distance;
-//         r += (d*d);
-//     }
-//     r /= matches.size();
-//     return r;
-// }
+#define COLOR_DISTANCE                                          \
+    int color_match = f1.colors ^ f2.colors;                    \
+    float count_diff = abs(1.0*f1.n_colors - 1.0*f2.n_colors);  \
+    float white_diff = abs(f1.white - f2.white);                \
+    color_match = bit_count16(color_match) - count_diff;        \
+    float color_dist  = (color_match * COLOR_MATCH_C +          \
+                         count_diff * COLOR_COUNT_C +           \
+                         white_diff * WHITE_C);
 
-float histogram_distance(const Features &f1, const Features &f2){
-    // TODO white
-    int color_match = f1.colors ^ f2.colors;
-    int count_diff = abs(f1.n_colors - f2.n_colors);
-    color_match = bit_count16(color_match) - count_diff;
-    return color_match * MATCH_C + count_diff * COLOR_COUNT_C;
-}
+#define FEATURE_DISTANCE                                                \
+    float shape_dist = matchShapes(shape1, shape2,                      \
+                                   CV_CONTOURS_MATCH_I1, 0.0);          \
+    if (shape_dist > SHAPE_MATCH_CUTOFF)                                \
+        return -1.0;                                                    \
+    COLOR_DISTANCE                                                      \
+    float sub_shape_dist = 0;                                           \
+    if ((sub_shape1.size() != 0) && (sub_shape2.size() != 0)){          \
+    sub_shape_dist = matchShapes(sub_shape1, sub_shape2,                \
+                                 CV_CONTOURS_MATCH_I1, 0.0);            \
+    }                                                                   \
+    float aspect_diff = f1.aspect / f2.aspect;                          \
+    aspect_diff = (aspect_diff < 1) ? 1/aspect_diff : aspect_diff;      \
+    float aspect_dist = aspect_diff - 1;                                \
+    float points_dist = abs(1.0*f1.points -  1.0*f2.points);            \
+    float sharpness_dist = abs(f1.sharpness - f2.sharpness);            \
+    float shape = (SHAPE_C * shape_dist +                               \
+                   ASPECT_C * aspect_dist);                             \
+    float modifiers =  (COLOR_C * color_dist +                          \
+                        SUB_SHAPE_C * sub_shape_dist +                  \
+                        POINTS_C * points_dist +                        \
+                        SHARPNESS_C * sharpness_dist);                  \
 
 float feature_distance(const Features &f1, const Features &f2,
                        const Contour &shape1, const Contour &shape2,
                        const Contour &sub_shape1, const Contour &sub_shape2){
-    float hist_dist = histogram_distance(f1, f2);
-    //float a = aspect1-aspect2;
-    //float aspect_dist = (a*a)/(aspect1 + aspect2);
-    return HISTOGRAM_C * hist_dist
-        //+ ASPECT_C * aspect_dist
-        ;
+    FEATURE_DISTANCE
+    return shape * modifiers;
 }
 
 
-/* Testing */
+/*** Testing ***/
 #include <bitset>
+
 void draw_features(const string file, const Features &f, 
                    const Contour &shape, const Contour &sub_shape){
     Mat im;
@@ -212,3 +221,57 @@ void draw_features(const string file, const Features &f,
     imshow(file, im);
     waitKey();
 }
+
+void get_draw_features(const string file){
+    Features f;
+    Contour s, ss;
+    get_features(file, f, s, ss);
+    draw_features(file, f, s, ss);
+}
+
+float print_distance(const Features &f1, const Features &f2,
+                     const Contour &shape1, const Contour &shape2,
+                     const Contour &sub_shape1, const Contour &sub_shape2){
+    FEATURE_DISTANCE
+    cout << "color " << color_match * COLOR_MATCH_C << " count " << count_diff * COLOR_COUNT_C << " white " << white_diff * WHITE_C << endl;
+    cout << "shape " << shape_dist * SHAPE_C << " aspect " << aspect_dist * ASPECT_C << " ===== " << shape << endl;
+    cout << "color " << color_dist * COLOR_C << " subshape " << sub_shape_dist * SUB_SHAPE_C << " points " << points_dist * POINTS_C << " sharpness " << sharpness_dist * SHARPNESS_C << " ===== " << modifiers << endl;
+    cout << "total ================ " << shape * modifiers << endl << endl;
+    return shape * modifiers;
+}
+
+void compare_logos(const string a, const string b){
+    Features fa, fb;
+    Contour sa, ssa, sb, ssb;
+    get_features(a, fa, sa, ssa);
+    get_features(b, fb, sb, ssb);
+    draw_features(a, fa, sa, ssa);
+    draw_features(b, fb, sb, ssb);
+    float dist = print_distance(fa, fb, sa, sb, ssa, ssb);
+    if (dist < 0) cout << "No match" << endl;
+}
+
+/*** Descriptors ***/
+// This method is good for finding exact matches, but it is slow and takes up a lot of memory
+
+// float descriptor_distance(Mat desc1, Mat desc2){
+//     //FlannBasedMatcher matcher;
+//     BFMatcher matcher(NORM_L1);
+//     vector<DMatch> matches;
+//     matcher.match(desc1, desc2, matches);
+//     float r = 0.0;
+//     vector<DMatch>::iterator it;
+//     for(it = matches.begin(); it != matches.end(); ++it){
+//         float d = (*it).distance;
+//         r += (d*d);
+//     }
+//     r /= matches.size();
+//     return r;
+// }
+
+// using namespace cv::xfeatures2d;
+// void get_descriptors(Mat &im, Mat &desc){
+//     Ptr<SURF> surf = SURF::create(400.0, 3, 3, false);
+//     std::vector<KeyPoint> kp;
+//     surf->detectAndCompute(im, Mat(), kp, desc);
+// }
