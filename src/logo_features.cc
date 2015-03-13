@@ -35,11 +35,11 @@ using mongo::DBClientCursor;
 //     bson = b.obj();
 // }
 
-void features_BSON(Features *features, BSONObjBuilder &b){
+void features_BSON(const Features &features, BSONObjBuilder &b){
     b.appendBinData("struct", 
                     sizeof(Features),
                     mongo::BinDataGeneral,
-                    features);
+                    &features);
 }
 
 // void BSON_mat(Mat &mat, BSONObj bson){
@@ -55,13 +55,14 @@ void features_BSON(Features *features, BSONObjBuilder &b){
 //     memcpy(mat.data, data, len);
 // }
 
-void BSON_features(Features *features, BSONObj bson){
+void BSON_features(Features &features, BSONObj bson){
     int len = 0;
     const char *data = bson.getField("struct").binData(len);
-    memcpy(features, data, len);
+    memcpy(&features, data, len);
 }
 
-int extract_features(string logo_id, string db_name, string db_server){
+int extract_features(const string logo_id, const string db_name, 
+                     const string db_server){
     // Find logo
     mongo::DBClientConnection db;
     try {
@@ -75,13 +76,13 @@ int extract_features(string logo_id, string db_name, string db_server){
     BSONObj p = cursor->next();
     // Get image features
     Features features;
-    Contour shape;
-    if (!get_features(p.getStringField("file"), &features, shape))
+    Contour shape, sub_shape;
+    if (!get_features(p.getStringField("file"), features, shape, sub_shape))
         return NO_IMAGE;
     // Save features
     //mat_BSON(desc, descriptors);
     BSONObjBuilder b;
-    features_BSON(&features, b);
+    features_BSON(features, b);
     //b.append("descriptors", descriptors);
     db.update(db_name,
               BSON("_id" << logo_id),
@@ -92,7 +93,8 @@ int extract_features(string logo_id, string db_name, string db_server){
 //// Feature comparison
 typedef pair<string, float> Result;
 
-int search_features(string image, string db_name, string db_server, BSONArray &bson){
+int search_features(const string image, const string db_name, 
+                    const string db_server, BSONArray &bson){
     mongo::DBClientConnection db;
     try {
         db.connect(db_server);
@@ -101,8 +103,8 @@ int search_features(string image, string db_name, string db_server, BSONArray &b
     }
     // Get image features
     Features features1;
-    Contour shape1;
-    if (!get_features(image, &features1, shape1)) return NO_IMAGE;
+    Contour shape1, sub_shape1;
+    if (!get_features(image, features1, shape1, sub_shape1)) return NO_IMAGE;
     // Compare against db
     monotonic_clock::time_point t1 = monotonic_clock::now();
     BSONArrayBuilder a;
@@ -113,8 +115,11 @@ int search_features(string image, string db_name, string db_server, BSONArray &b
         BSONObj f = logo.getObjectField("features");
         if (f.isEmpty()) continue;
         Features features2;
-        BSON_features(&features2, f);
-        float distance = feature_distance(&features1, &features2);
+        Contour shape2, sub_shape2;
+        BSON_features(features2, f);
+        float distance = feature_distance(features1, features2,
+                                          shape1, shape2,
+                                          sub_shape1, sub_shape2);
         if (distance >= 0)
             a << BSON("logo" << logo.removeField("features") << "distance" << distance);
     }

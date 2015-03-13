@@ -2,14 +2,13 @@
 
 int main() {
     Features f;
-    Contour s;
-    get_features("public/search_store/QydsZ6MK.png", &f, s);
-    waitKey();
-    get_features("public/img_store/7JDxfhfF/7k-Pgf2fY.png", &f, s);
-    waitKey();
-    get_features("public/img_store/7ksweM2Gt/Q1Twxz3zY.png", &f, s);
-    waitKey();
-    get_features("tests/rects.png", &f, s);
-    waitKey();
+    Contour s, ss;
+    const char* logos[] = {"rects", "macdos", "starbucks1", "starbucks2", "face-crown", "throw-crest", "swan-crest"};
+    for (int i = 0; i < 7; i++){
+        string path = "tests/" + string(logos[i]) + ".png";
+        get_features(path, f, s, ss);
+        draw_features(path, f, s, ss);
+    }
     return EXIT_SUCCESS;
 }
+

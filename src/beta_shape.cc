@@ -1,3 +1,8 @@
+//// Beta shape algorithm
+//// Based heavily off of Beta-Shape Using Delaunay-Based Triangle Erosion by
+//// Boiangiu and Zaharescu
+//// http://www.wseas.us/e-library/conferences/2013/Budapest/MATH/MATH-14.pdf
+
 #include <assert.h>
 
 #define MAX_IMAGE_SIZE 400
