@@ -17,5 +17,5 @@ block content
       ul(ng-switch-default)
         li(ng-repeat='logo in logos')
           a(ng-href="/org/{{logo.org}}#{{logo._id}}")
-            img(ng-src='{{logo.src}}')
+            img(ng-src='/img_store/{{logo.org}}/{{logo._id}}.png')
           | {{logo.distance}}

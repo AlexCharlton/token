@@ -70,6 +70,7 @@ int extract_features(const string logo_id, const string logo_db,
     // Save features
     BSONObjBuilder b;
     b.append("aspect", features.aspect);
+    b.append("org", p.getStringField("org"));
     features_BSON(features, b);
     contour_BSON("shape", shape, b);
     contour_BSON("sub_shape", sub_shape, b);
@@ -81,11 +82,20 @@ int extract_features(const string logo_id, const string logo_db,
 }
 
 //// Feature comparison
-typedef pair<string, float> Result;
+struct Result{
+    float distance;
+    string logo_id, org_id;
+
+    Result(float dist, const string l, const string o){
+        distance = dist;
+        logo_id = l;
+        org_id = o;
+    }
+};
 typedef vector<Result> Results;
 
 int search_features(const string image, const string db_name, 
-                    const string db_server, Results &result){
+                    const string db_server, Results &results){
     mongo::DBClientConnection db;
     try {
         db.connect(db_server);
@@ -103,8 +113,8 @@ int search_features(const string image, const string db_name,
         db.query(db_name, MONGO_QUERY("aspect"
                                       <<mongo::GT<< MIN_ASPECT(aspect)
                                       <<mongo::LT<< MAX_ASPECT(aspect)));
-    result.clear();
-    result.reserve(512);
+    results.clear();
+    results.reserve(512);
     while(cursor->more()) {
         BSONObj f = cursor->next();
         Features features2;
@@ -116,7 +126,9 @@ int search_features(const string image, const string db_name,
                                           shape1, shape2,
                                           sub_shape1, sub_shape2);
         if ((distance >= 0) && (distance < MATCH_CUTOFF))
-            result.emplace_back(f.getStringField("_id"), distance);
+            results.emplace_back(distance, 
+                                 f.getStringField("_id"),
+                                 f.getStringField("org"));
     }
     monotonic_clock::time_point t2 = monotonic_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
@@ -187,9 +199,11 @@ NAN_METHOD(Search){
     v8::Local<v8::Array> ret = NanNew<v8::Array>(r.size());
     for (size_t i = 0; i < r.size(); i++){
         v8::Local<v8::Array> a = NanNew<v8::Array>(2);
-        a->Set(0, NanNew<v8::Number>(r[i].second));
-        a->Set(1, NanNew<v8::String>(r[i].first.data(), 
-                                     r[i].first.length()));
+        a->Set(0, NanNew<v8::Number>(r[i].distance));
+        a->Set(1, NanNew<v8::String>(r[i].logo_id.data(), 
+                                     r[i].logo_id.length()));
+        a->Set(2, NanNew<v8::String>(r[i].org_id.data(), 
+                                     r[i].org_id.length()));
         ret->Set(i, a);
     }
     NanReturnValue(ret);

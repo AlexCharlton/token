@@ -63,20 +63,11 @@ api.factory('Logo', ['$resource', function($resource){
 api.factory('Search', ['$http', '$resource', 'Logo', function ($http, $resource, Logo){
     var Search = $resource('/r/search') 
 
-    var distance_sort = function(a, b){
-        return a.distance - b.distance
-    }
-
-    var process_results = function(scores, logos){
-        scores.forEach(function(score){
-            setTimeout(function(){
-                Logo(score[1],
-                     function(logo){
-                         logo.distance = score[0]
-                         logos.push(logo)
-                         logos.sort(distance_sort)
-                     })
-            }, 0)
+    var process_results = function(r){
+        return _.map(r, function(a){ 
+            return {distance: a[0],
+                    _id: a[1],
+                    org: a[2]}
         })
     }
 
@@ -88,11 +79,7 @@ api.factory('Search', ['$http', '$resource', 'Logo', function ($http, $resource,
             headers: {'Content-Type': undefined}
         })
             .success(function(res){
-                res.logos = []
-                setTimeout(
-                    function(){
-                        process_results(res.results, res.logos)
-                    }, 0)
+                res.results = process_results(res.results)
                 cb(res)
             })
             .error(function(res){
@@ -116,12 +103,11 @@ api.factory('Search', ['$http', '$resource', 'Logo', function ($http, $resource,
 app.controller('Main', ['$scope', 'Stats', 'Search', function($scope, Stats, Search){
     $scope.logos = "no search"
     var display_results = function(results){
-        console.log(results)
         $scope.search = {id: results.id, src: results.src}
         if (_.isEmpty(results.results)){
             $scope.logos = "none"
         } else {
-            $scope.logos = results.logos
+            $scope.logos = results.results
         }
     }
 

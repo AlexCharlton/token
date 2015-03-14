@@ -369,8 +369,7 @@ var search_results = function(src, id, res){
             var results = features.search(dest, 
                                           database_name + '.features',
                                           database_server)
-
-            results.sort(function(a, b){ return a[1] - b[1] })
+            results = results.sort(function(a, b){ return a[0] - b[0] })
             res.send({id : id,
                       src: web_src,
                       results: results})
