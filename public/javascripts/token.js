@@ -12,19 +12,17 @@ api.factory('Stats', ['$resource', function($resource){
 }])
 
 api.factory('Org', ['$resource', '$location', function($resource, $location){
-    var Org = $resource('/r/org/:org/') 
-    var match = /\/org\/([\w\-]+)/g.exec($location.path())
-    var org_id = match ? match[1] : '404'
+    var Org = $resource('/r/org/:org')
 
-    var logo = function(org){
+    var logo = function(org){ // Which logo is currently active?
         var logo_id = $location.hash()
         var logo = null
-        if (logo_id) {
+        if (logo_id) { // The URL is specifing the logo
             logo = _.find(org.logos, function(l){ 
                 return l._id == logo_id
             })
         }
-        if (!logo && !_.isEmpty(org.logos)){
+        if (!logo && !_.isEmpty(org.logos)){ // Get most recent active logo
             var active_not = _.partition(org.logos, function(l){ 
                 return l.active 
             })
@@ -38,26 +36,48 @@ api.factory('Org', ['$resource', '$location', function($resource, $location){
     }
 
     var get = function(callback, error_callback){
+        var match = /\/org\/([\w\-]+)/g.exec($location.path())
+        var org_id = match ? match[1] : '404'
         var org = Org.get(
             {org: org_id}, 
             function get_org(){ callback(org) },
             error_callback)
     }
 
-    return {get:get, logo:logo}
+    return {get: get, logo: logo}
 }])
 
-api.factory('Search', ['$http', '$resource', function ($http, $resource){
+api.factory('Logo', ['$resource', function($resource){
+    var Logo = $resource('/r/logo/:logo') 
+
+    var logo = function(logo_id, callback, error_callback){
+        var l = Logo.get(
+            {logo: logo_id}, 
+            function get_logo(){ callback(l) },
+            error_callback)
+    }
+
+    return logo
+}])
+
+api.factory('Search', ['$http', '$resource', 'Logo', function ($http, $resource, Logo){
     var Search = $resource('/r/search') 
 
     var distance_sort = function(a, b){
         return a.distance - b.distance
     }
 
-    var process_results = function(r){
-        a = _.values(r.results).sort(distance_sort)
-        r.results = a
-        return r
+    var process_results = function(scores, logos){
+        scores.forEach(function(score){
+            setTimeout(function(){
+                Logo(score[1],
+                     function(logo){
+                         logo.distance = score[0]
+                         logos.push(logo)
+                         logos.sort(distance_sort)
+                     })
+            }, 0)
+        })
     }
 
     var upload = function(file, cb, err){
@@ -68,7 +88,12 @@ api.factory('Search', ['$http', '$resource', function ($http, $resource){
             headers: {'Content-Type': undefined}
         })
             .success(function(res){
-                cb(process_results(res))
+                res.logos = []
+                setTimeout(
+                    function(){
+                        process_results(res.results, res.logos)
+                    }, 0)
+                cb(res)
             })
             .error(function(res){
                 err(res)
@@ -91,11 +116,12 @@ api.factory('Search', ['$http', '$resource', function ($http, $resource){
 app.controller('Main', ['$scope', 'Stats', 'Search', function($scope, Stats, Search){
     $scope.logos = "no search"
     var display_results = function(results){
+        console.log(results)
         $scope.search = {id: results.id, src: results.src}
         if (_.isEmpty(results.results)){
             $scope.logos = "none"
         } else {
-            $scope.logos = results.results
+            $scope.logos = results.logos
         }
     }
 

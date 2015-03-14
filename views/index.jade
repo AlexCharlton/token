@@ -16,6 +16,6 @@ block content
       div(ng-switch-when='error') Oops!
       ul(ng-switch-default)
         li(ng-repeat='logo in logos')
-          a(ng-href="/org/{{logo.logo.org}}#{{logo.logo._id}}")
-            img(ng-src='{{logo.logo.src}}')
+          a(ng-href="/org/{{logo.org}}#{{logo._id}}")
+            img(ng-src='{{logo.src}}')
           | {{logo.distance}}

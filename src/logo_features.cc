@@ -49,8 +49,8 @@ void BSON_contour(const string field, Contour &c, BSONObj &bson){
     memcpy(c.data(), data, len);
 }
 
-int extract_features(const string logo_id, const string db_name, 
-                     const string db_server){
+int extract_features(const string logo_id, const string logo_db, 
+                     const string feature_db, const string db_server){
     // Find logo
     mongo::DBClientConnection db;
     try {
@@ -59,7 +59,7 @@ int extract_features(const string logo_id, const string db_name,
         return CONNECTION_FAIL;
     }
     unique_ptr<DBClientCursor> cursor =
-        db.query(db_name, MONGO_QUERY("_id" << logo_id));
+        db.query(logo_db, MONGO_QUERY("_id" << logo_id));
     if (!cursor->more()) return NO_LOGO;
     BSONObj p = cursor->next();
     // Get image features
@@ -73,17 +73,19 @@ int extract_features(const string logo_id, const string db_name,
     features_BSON(features, b);
     contour_BSON("shape", shape, b);
     contour_BSON("sub_shape", sub_shape, b);
-    db.update(db_name,
+    db.update(feature_db,
               BSON("_id" << logo_id),
-              BSON("$set" << BSON( "features" << b.obj())));
+              BSON("$set" << b.obj()),
+              true);
     return 0;
 }
 
 //// Feature comparison
 typedef pair<string, float> Result;
+typedef vector<Result> Results;
 
 int search_features(const string image, const string db_name, 
-                    const string db_server, BSONArray &bson){
+                    const string db_server, Results &result){
     mongo::DBClientConnection db;
     try {
         db.connect(db_server);
@@ -97,17 +99,14 @@ int search_features(const string image, const string db_name,
     float aspect = features1.aspect;
     // Compare against db
     monotonic_clock::time_point t1 = monotonic_clock::now();
-    BSONArrayBuilder a;
-    // TODO remove "features." -------vvvvvvvvvvvvvvvvv
     unique_ptr<DBClientCursor> cursor =
-        db.query(db_name, MONGO_QUERY("features.aspect"
+        db.query(db_name, MONGO_QUERY("aspect"
                                       <<mongo::GT<< MIN_ASPECT(aspect)
                                       <<mongo::LT<< MAX_ASPECT(aspect)));
-    vector<Result> v; v.reserve(512);
+    result.clear();
+    result.reserve(512);
     while(cursor->more()) {
-        BSONObj logo = cursor->next();
-        BSONObj f = logo.getObjectField("features");
-        if (f.isEmpty()) continue;
+        BSONObj f = cursor->next();
         Features features2;
         Contour shape2, sub_shape2;
         BSON_features(features2, f);
@@ -117,12 +116,11 @@ int search_features(const string image, const string db_name,
                                           shape1, shape2,
                                           sub_shape1, sub_shape2);
         if ((distance >= 0) && (distance < MATCH_CUTOFF))
-            a << BSON("logo" << logo.removeField("features") << "distance" << distance);
+            result.emplace_back(f.getStringField("_id"), distance);
     }
     monotonic_clock::time_point t2 = monotonic_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
     cout << "Searched through logos in " << time_span.count() << " seconds." << endl;
-    bson = a.arr();
     return 0;
 }
 
@@ -132,56 +130,69 @@ int search_features(const string image, const string db_name,
 
 NAN_METHOD(Extract){
     NanScope();
-    string server = "localhost";
-    if (args.Length() < 2) {
-        return NanThrowError("Expected logo ID, db name");
-    }
-    if (args.Length() >= 3) {
-        server = *NanAsciiString(args[2]);
-    }
+
+    if (args.Length() < 1)
+        return NanThrowError("Expected logo ID");
     string logo_id = *NanAsciiString(args[0]);
-    string db_name = *NanAsciiString(args[1]);
-    int result = extract_features(logo_id, db_name, server);
-    if (result < 0){
-        switch (result){
-        case NO_IMAGE: 
-            NanThrowError("Feature extraction failed: No such image");
-            break;
-        case NO_LOGO: 
-            NanThrowError("Feature extraction failed: No such logo");
-            break;
-        case CONNECTION_FAIL: 
-            NanThrowError("Feature extraction failed: Connection to DB failed");
-            break;
-        }
+    string logo_db = "token.logos";
+    if (args.Length() >= 2)
+        logo_db = *NanAsciiString(args[1]);
+    string feature_db = "token.features";
+    if (args.Length() >= 3)
+        feature_db = *NanAsciiString(args[2]);
+    string server = "localhost";
+    if (args.Length() >= 4)
+        server = *NanAsciiString(args[3]);
+
+    int result = extract_features(logo_id, logo_db, feature_db, server);
+    switch (result){
+    case NO_IMAGE: 
+        NanThrowError("Feature extraction failed: No such image");
+        break;
+    case NO_LOGO: 
+        NanThrowError("Feature extraction failed: No such logo");
+        break;
+    case CONNECTION_FAIL: 
+        NanThrowError("Feature extraction failed: Connection to DB failed");
+        break;
     }
+
     NanReturnUndefined();
 }
 
 NAN_METHOD(Search){
     NanScope();
-    string server = "localhost";
-    if (args.Length() < 2) {
-        return NanThrowError("Expected logo ID, db_name");
-    }
-    if (args.Length() >= 3) {
-        server = *NanAsciiString(args[2]);
-    }
+
+    if (args.Length() < 1)
+        return NanThrowError("Expected logo ID");
     string image = *NanAsciiString(args[0]);
-    string db_name = *NanAsciiString(args[1]);
-    BSONArray bson;
-    int result = search_features(image, db_name, server, bson);
-    if (result < 0){
-        switch (result){
-        case NO_IMAGE: 
-            NanThrowError("Logo search failed: No such image");
-            break;
-        case CONNECTION_FAIL: 
-            NanThrowError("Logo extraction failed: Connection to DB failed");
-            break;
-        }
+    string db_name = "token.features";
+    if (args.Length() >= 2)
+        db_name = *NanAsciiString(args[1]);
+    string server = "localhost";
+    if (args.Length() >= 3)
+        server = *NanAsciiString(args[2]);
+
+    Results r;
+    int result = search_features(image, db_name, server, r);
+    switch (result){
+    case NO_IMAGE: 
+        NanThrowError("Logo search failed: No such image");
+        break;
+    case CONNECTION_FAIL: 
+        NanThrowError("Logo extraction failed: Connection to DB failed");
+        break;
     }
-    NanReturnValue(NanNew<v8::String>(bson.jsonString()));
+
+    v8::Local<v8::Array> ret = NanNew<v8::Array>(r.size());
+    for (size_t i = 0; i < r.size(); i++){
+        v8::Local<v8::Array> a = NanNew<v8::Array>(2);
+        a->Set(0, NanNew<v8::Number>(r[i].second));
+        a->Set(1, NanNew<v8::String>(r[i].first.data(), 
+                                     r[i].first.length()));
+        ret->Set(i, a);
+    }
+    NanReturnValue(ret);
 }
 
 void init(v8::Handle<v8::Object> exports){

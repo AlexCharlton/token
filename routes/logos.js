@@ -15,13 +15,15 @@ var router = express.Router();
 var database_server = process.env['TOKEN_DB_SERVER'] || 'localhost'
 var database_name = process.env['TOKEN_DB'] || 'token'
 var db = mongojs(database_server + "/" + database_name, 
-                 ['tags', 'orgs', 'logos'])
+                 ['tags', 'orgs', 'logos', 'features'])
 
 var logo_src_base = '/img_store/'
 var logo_store = path.join('./public', logo_src_base)
 var search_src_base = '/search_store/'
 var search_store = path.join('./public', search_src_base)
 var download_dir = 'downloads/'
+
+db.features.createIndex({"aspect": 1})
 
 function not_admin(pass, res){
     if (pass != process.env['TOKEN_PASSWORD']){
@@ -177,9 +179,9 @@ router.get('/flagged', function send_org(req, res, next) {
 // _id
 // name
 // file
+// src
 // date
 // retrieved_from
-// features
 // active?
 // review?
 
@@ -190,12 +192,12 @@ function get_logo(logo, callback){
             console.error("No logo found: " + req.params.logo); 
             callback("No such logo: " + logo, null)
         } else {
-            callback(null, _.omit(logos[0], 'features'))
+            callback(null, logos[0])
         }
     })
 }
 
-router.get('/org/:org/:logo', function send_logo(req, res, next) {
+router.get('/logo/:logo', function send_logo(req, res, next) {
     // Send logo
     db.logos.find({_id: req.params.logo}, function(err, logos){
         if (err || logos.length == 0) {
@@ -203,7 +205,7 @@ router.get('/org/:org/:logo', function send_logo(req, res, next) {
             console.error("No logo found: " + req.params.logo); 
             return res.status(404).send("No such logo: " + req.params.logo);
         }
-        res.send(_.omit(logos[0], 'features'));
+        res.send(logos[0]);
     });
 });
 
@@ -268,13 +270,15 @@ router.post('/org/:org', function create_logo(req, res, next) {
             file.path, file_path, 
             function success(){
                 var logo = {_id: id, file: file_path, src: src,
-                            date: date, features: null,
-                            name: name, org: org._id, 
+                            date: date, name: name, org: org._id,
                             retrieved_from: retrieved_from,
                             active: active, review: review}
                 db.logos.insert(logo, function(err, value){
                     res.status(201).send(id)
-                    features.extract(id, database_name + '.logos')
+                    features.extract(id,
+                                     database_name + '.logos',
+                                     database_name + '.features',
+                                     database_server)
                 })
             },
             function error(e){
@@ -362,10 +366,14 @@ var search_results = function(src, id, res){
     mv_resize_image(
         src, dest,
         function success(){
-            var results = features.search(dest, database_name + '.logos')
-            res.type('json').send('{ "id" : "' + id + 
-                                  '", "src" : "' + web_src +
-                                  '", "results" : ' + results + ' }')
+            var results = features.search(dest, 
+                                          database_name + '.features',
+                                          database_server)
+
+            results.sort(function(a, b){ return a[1] - b[1] })
+            res.send({id : id,
+                      src: web_src,
+                      results: results})
         },
         function error(e){
             console.error(e)
