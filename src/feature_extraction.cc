@@ -234,17 +234,6 @@ void get_draw_features(const string file){
     draw_features(file, f, s, ss);
 }
 
-float print_distance(const Features &f1, const Features &f2,
-                     const Contour &shape1, const Contour &shape2,
-                     const Contour &sub_shape1, const Contour &sub_shape2){
-    FEATURE_DISTANCE
-    cout << "color " << color_match * COLOR_MATCH_C << " count " << count_diff * COLOR_COUNT_C << " white " << white_diff * WHITE_C << endl;
-    cout << "shape " << shape_dist * SHAPE_C << " aspect " << aspect_dist * ASPECT_C << " ===== " << shape << endl;
-    cout << "color " << color_dist * COLOR_C << " subshape " << sub_shape_dist * SUB_SHAPE_C << " points " << points_dist * POINTS_C << " sharpness " << sharpness_dist * SHARPNESS_C << " ===== " << modifiers << endl;
-    cout << "total ================ " << shape * modifiers << endl << endl;
-    return shape * modifiers;
-}
-
 void compare_logos(const string a, const string b){
     Features fa, fb;
     Contour sa, ssa, sb, ssb;
@@ -252,6 +241,6 @@ void compare_logos(const string a, const string b){
     get_features(b, fb, sb, ssb);
     draw_features(a, fa, sa, ssa);
     draw_features(b, fb, sb, ssb);
-    float dist = print_distance(fa, fb, sa, sb, ssa, ssb);
+    float dist = feature_distance(fa, fb, sa, sb, ssa, ssb);
     if (dist < 0) cout << "No match" << endl;
 }
