@@ -360,19 +360,17 @@ router.delete('org/:org/:logo', function rm_logo(req, res, next) {
 
 
 //// Search
-var search_results = function(src, id, res){
-    var dest = path.join(search_store, id + '.png')
-    var web_src = path.join(search_src_base, id + '.png')
+var search_results = function(src, res){
+    var dest = path.join(search_store, shortid.generate() + '.png')
     mv_resize_image(
         src, dest,
         function success(){
             var results = features.search(dest, 
                                           database_name + '.features',
                                           database_server)
-            results = results.sort(function(a, b){ return a[0] - b[0] })
-            res.send({id : id,
-                      src: web_src,
-                      results: results})
+            results.sort(function(a, b){ return a[0] - b[0] })
+            res.send(results)
+            fs.unlink(dest)
         },
         function error(e){
             console.error(e)
@@ -383,13 +381,11 @@ var search_results = function(src, id, res){
 
 
 router.post('/search', function send_results(req, res, next){
-    var search_id = shortid.generate()
     var logo = req.files.logo
     if (logo.length == 0){
         return res.status(400).send("Missing logo in search");
     }
-    search_results(logo[0].path, search_id, res)
-    // TODO memoize results (use logo[0].originalname as well)
+    search_results(logo[0].path, res)
 })
 
 var download = function(url, dest, cb) {
@@ -407,22 +403,15 @@ var download = function(url, dest, cb) {
 };
 
 router.get('/search', function send_results(req, res, next){
-    var search_id = shortid.generate()
     var logo = req.query.logo
-    var download_path = path.join(download_dir, search_id)
+    var download_path = path.join(download_dir, shortid.generate())
     download(logo, download_path, function(err){
         if (err){
             console.error(err)
             return res.status(400).send(e)
         }
-        search_results(download_path, search_id, res)
+        search_results(download_path, res)
     })
-    // TODO memoize
-})
-
-router.get('/search/:search', function send_results(req, res, next){
-    var search_id = req.params.search
-    /// TODO 
 })
 
 

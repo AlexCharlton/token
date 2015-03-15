@@ -73,41 +73,49 @@ api.factory('Search', ['$http', '$resource', 'Logo', function ($http, $resource,
 
     var upload = function(file, cb, err){
         var fd = new FormData()
+        var url = URL.createObjectURL(file)
         fd.append('logo', file)
         $http.post('/r/search', fd, {
             transformRequest: angular.identity,
             headers: {'Content-Type': undefined}
         })
             .success(function(res){
-                res.results = process_results(res.results)
-                cb(res)
+                cb({logos: process_results(res),
+                    search: {src: url}})
             })
             .error(function(res){
                 err(res)
             })
     }
 
-    var url = function(url, callback, error_callback){
-        var results = Search.get(
-            {logo: url}, 
+    var url_search = function(url, cb, err){
+        console.log("url search")
+        var res = Search.query(
+            {logo: url},
             function search(){
-                callback(process_results(results))
+                console.log("results: ")
+                console.log(res)
+                cb({logos: process_results(res),
+                    search: {src: url}})
             },
-            error_callback)
+            function error(){
+                console.log("error")
+                err()
+            })
     }
 
     return { uploadLogoSearch: upload,
-             urlSearch: url }
+             urlSearch: url_search }
 }])
 
 app.controller('Main', ['$scope', 'Stats', 'Search', function($scope, Stats, Search){
     $scope.logos = "no search"
     var display_results = function(results){
-        $scope.search = {id: results.id, src: results.src}
-        if (_.isEmpty(results.results)){
+        $scope.search = results.search
+        if (_.isEmpty(results)){
             $scope.logos = "none"
         } else {
-            $scope.logos = results.results
+            $scope.logos = results.logos
         }
     }
 
