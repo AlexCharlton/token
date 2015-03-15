@@ -1,15 +1,20 @@
-var express = require('express');
-var mongojs = require('mongojs');
-var shortid = require('shortid');
-var multer  = require('multer');
-var async  = require('async');
-var mkdirp  = require('mkdirp');
-var gm  = require('gm');
+var express = require('express')
+var mongojs = require('mongojs')
+var shortid = require('shortid')
+var multer  = require('multer')
+var async  = require('async')
+var mkdirp  = require('mkdirp')
+var gm  = require('gm')
 var fs = require('fs')
 var http = require('http')
 var path = require('path')
-var _ = require('underscore');
-var features = require('../build/Release/logo_features.node');
+var _ = require('underscore')
+var features
+if (process.env['DEBUG']){
+    features = require('../build/Debug/logo_features.node')
+} else {
+    features = require('../build/Release/logo_features.node')
+}
 
 var router = express.Router();
 var database_server = process.env['TOKEN_DB_SERVER'] || 'localhost'

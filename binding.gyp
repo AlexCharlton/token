@@ -1,9 +1,24 @@
 {
     'target_defaults': {
+        'default_configuration': 'Release',
+        'configurations': {
+            'Debug': {
+                # cflags required so no illegal instruction is created
+                'cflags!': [ 
+                    '-O0'
+                ],
+                'cflags': [
+                    '-O2',
+                    '-fno-strict-aliasing',
+                    '-fno-omit-frame-pointer'
+                ],
+            },
+            'Release': {
+            }
+        },
         'cflags': [
             '<!@(pkg-config --cflags opencv)',
-            '-std=c++0x',
-            '-O3'
+            '-std=c++0x'
         ],
         'cflags_cc!': [ '-fno-rtti', # enable rtti
                         '-fno-exceptions' # enable exceptions

@@ -153,44 +153,49 @@ int get_features(const string file, Features &f, Contour &shape,
 
 
 /*** Distance ***/
-// Macro abuse so we can output good data for analysis purposes
+float color_distance(const Features &f1, const Features &f2){
+    int color_match = f1.colors ^ f2.colors;
+    float count_diff = abs(1.0*f1.n_colors - 1.0*f2.n_colors);
+    float white_diff = abs(f1.white - f2.white);
+    color_match = bit_count16(color_match) - count_diff;
+#ifdef DEBUG
+    cout << "color " << color_match * COLOR_MATCH_C << " count " << count_diff * COLOR_COUNT_C << " white " << white_diff * WHITE_C << endl;
+#endif
+    return (color_match * COLOR_MATCH_C +
+            count_diff * COLOR_COUNT_C +
+            white_diff * WHITE_C);
+}
 
-#define COLOR_DISTANCE                                          \
-    int color_match = f1.colors ^ f2.colors;                    \
-    float count_diff = abs(1.0*f1.n_colors - 1.0*f2.n_colors);  \
-    float white_diff = abs(f1.white - f2.white);                \
-    color_match = bit_count16(color_match) - count_diff;        \
-    float color_dist  = (color_match * COLOR_MATCH_C +          \
-                         count_diff * COLOR_COUNT_C +           \
-                         white_diff * WHITE_C);
-
-#define FEATURE_DISTANCE                                                \
-    float shape_dist = matchShapes(shape1, shape2,                      \
-                                   CV_CONTOURS_MATCH_I1, 0.0);          \
-    if (shape_dist > SHAPE_MATCH_CUTOFF)                                \
-        return -1.0;                                                    \
-    COLOR_DISTANCE                                                      \
-    float sub_shape_dist = 0;                                           \
-    if ((sub_shape1.size() != 0) && (sub_shape2.size() != 0)){          \
-    sub_shape_dist = matchShapes(sub_shape1, sub_shape2,                \
-                                 CV_CONTOURS_MATCH_I1, 0.0);            \
-    }                                                                   \
-    float aspect_diff = f1.aspect / f2.aspect;                          \
-    aspect_diff = (aspect_diff < 1) ? 1/aspect_diff : aspect_diff;      \
-    float aspect_dist = aspect_diff - 1;                                \
-    float points_dist = abs(1.0*f1.points -  1.0*f2.points);            \
-    float sharpness_dist = abs(f1.sharpness - f2.sharpness);            \
-    float shape = (SHAPE_C * shape_dist +                               \
-                   ASPECT_C * aspect_dist);                             \
-    float modifiers =  (COLOR_C * color_dist +                          \
-                        SUB_SHAPE_C * sub_shape_dist +                  \
-                        POINTS_C * points_dist +                        \
-                        SHARPNESS_C * sharpness_dist);                  \
 
 float feature_distance(const Features &f1, const Features &f2,
                        const Contour &shape1, const Contour &shape2,
                        const Contour &sub_shape1, const Contour &sub_shape2){
-    FEATURE_DISTANCE
+    float shape_dist = matchShapes(shape1, shape2,
+                                   CV_CONTOURS_MATCH_I1, 0.0);
+    if (shape_dist > SHAPE_MATCH_CUTOFF)
+        return -1.0;
+    float color_dist  = color_distance(f1, f2);
+    float sub_shape_dist = 0;
+    if ((sub_shape1.size() != 0) && (sub_shape2.size() != 0)){
+    sub_shape_dist = matchShapes(sub_shape1, sub_shape2,
+                                 CV_CONTOURS_MATCH_I1, 0.0);
+    }
+    float aspect_diff = f1.aspect / f2.aspect;
+    aspect_diff = (aspect_diff < 1) ? 1/aspect_diff : aspect_diff;
+    float aspect_dist = aspect_diff - 1;
+    float points_dist = abs(1.0*f1.points -  1.0*f2.points);
+    float sharpness_dist = abs(f1.sharpness - f2.sharpness);
+    float shape = (SHAPE_C * shape_dist +
+                   ASPECT_C * aspect_dist);
+    float modifiers =  (COLOR_C * color_dist +
+                        SUB_SHAPE_C * sub_shape_dist +
+                        POINTS_C * points_dist +
+                        SHARPNESS_C * sharpness_dist);
+#ifdef DEBUG
+    cout << "shape " << shape_dist * SHAPE_C << " aspect " << aspect_dist * ASPECT_C << " ===== " << shape << endl;
+    cout << "color " << color_dist * COLOR_C << " subshape " << sub_shape_dist * SUB_SHAPE_C << " points " << points_dist * POINTS_C << " sharpness " << sharpness_dist * SHARPNESS_C << " ===== " << modifiers << endl;
+    cout << "total ================ " << shape * modifiers << endl << endl;
+#endif
     return shape * modifiers;
 }
 
