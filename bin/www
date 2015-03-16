@@ -17,7 +17,7 @@
  * Module dependencies.
  */
 
-var app = require('../app');
+var app = require('../token-app');
 var debug = require('debug')('token:server');
 var http = require('http');
 
