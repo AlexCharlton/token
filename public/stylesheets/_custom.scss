@@ -1,0 +1,187 @@
+
+body {
+    font-family: 'Lato', sans-serif;
+}
+
+//Navbar
+.navbar {
+    background-color:white;
+}
+
+.navbar-brand {
+    height:100%;
+    padding:0px;
+    margin-top:8px;
+    margin-bottom:8px;
+    img {
+	height:34px;
+	padding-left:15px;
+	padding-right:15px;
+}
+}
+
+.navbar-default {
+    border:none;
+}
+.navbar-form {
+    border:none;
+}
+
+//Input Elements
+
+.btn-file {
+    position: relative;
+    overflow: hidden;
+}
+.btn-file input[type=file] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 100px;
+    text-align: right;
+    filter: alpha(opacity=0);
+    opacity: 0;
+    outline: none;
+    cursor: inherit;
+    display: block;
+}
+
+.form-control {
+    border-radius:0px;
+    border:none;
+    background-color:$light;
+    box-shadow:none;
+    -webkit-box-shadow:none;
+}
+
+.form-control:focus
+ {
+    box-shadow:none;
+    -webkit-box-shadow:none;
+}
+
+
+.glyph-button {
+    color:$primary;
+    box-shadow:none;
+    -webkit-box-shadow:none;
+    border-radius:0px;
+    border:none;
+    height:34px;
+}
+
+.search-glyph-button {
+    color:$primary;
+    box-shadow:none;
+    -webkit-box-shadow:none;
+    border-radius:0px;
+    border:none;
+    height:34px;
+    background-color:$light;
+    :hover, :focus, :active:focus {
+	background-color:$light;
+    }
+}
+
+.glyphicon {
+    font-size:18px;
+}
+
+.btn:focus, .btn:active:focus, .btn-default:hover, .btn-default:active {
+    outline: 0 none;
+    box-shadow:none;
+    -webkit-box-shadow:none;
+}
+
+.upload-btn:hover {
+    background-color:white;
+}
+
+//Typography 
+
+.italic {
+    font-style:italic;
+}
+
+
+//Uploaded Logo
+.upload {
+    padding-bottom:30px;
+}
+
+.uploaded-img {
+    margin: 0 auto;
+    padding-top:15px;
+    @extend .img-responsive;
+ @media (max-width: $screen-md-min) { 
+     max-width:200px; 
+ }
+}
+
+//Matched Logo
+.match {
+    padding-bottom:30px;
+    a {
+	text-decoration:underline;
+	color:$primary;
+	font-size:12px;
+    }
+}
+
+.match-img {
+    min-width:100px;
+    margin: 0 auto;
+    @extend .img-responsive;
+    float:right;
+}
+
+.label-success {
+    border:none;
+    background-color:white;
+    color:#5cb85c;
+    font-weight:normal;
+    border-radius:0px;
+}
+
+.label-default {
+    border: none;
+    background-color:white;
+    color:#777;
+    font-weight:normal;
+    border-radius:0px;
+}
+
+.label-danger {
+    border-radius:0px;
+    font-size:16px;
+}
+
+
+//Gallery
+
+//Active Result
+
+.result-wrapper {
+display:relative;
+}
+
+.result-wrapper .glyphicon {
+  position: absolute;
+  top: 20px;
+  left: 40px;
+  font-size: 40px;
+   color: white;
+}
+
+
+//Footer
+.footer {
+    color:$dark;
+    a {
+	color:$dark;
+}
+    padding-bottom:20px;
+}
+
