@@ -24,8 +24,7 @@ var db = mongojs(database_server + "/" + database_name,
 
 var logo_src_base = '/img_store/'
 var logo_store = path.join('./public', logo_src_base)
-var search_src_base = '/search_store/'
-var search_store = path.join('./public', search_src_base)
+var search_store = 'searches/'
 var download_dir = 'downloads/'
 
 db.features.createIndex({"aspect": 1})
