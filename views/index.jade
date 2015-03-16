@@ -1,21 +1,57 @@
 extends layout
 
 block content
-  div(ng-controller='Main')
-    h1 Token
-    div(class='search')
-      p Search against {{n_logos}} logos
-      form(novalidate)
-        input(type='file', file-model='logo')
-        input(type='text', ng-model='url')
-        input(type='submit', value='Search', ng-click='logoSearch(url)')
-        img(ng-src="{{search.src}}")
-    div(ng-switch='logos', class='search-results')
-      div(ng-switch-when='none') No logos
-      div(ng-switch-when='no search') Do a search!
-      div(ng-switch-when='error') Oops!
-      ul(ng-switch-default)
-        li(ng-repeat='logo in logos')
-          a(ng-href="/org/{{logo.org}}#{{logo._id}}")
-            img(ng-src='/img_store/{{logo.org}}/{{logo._id}}.png')
-          | {{logo.distance}}
+  nav(class="navbar navbar-default")
+    .container-fluid
+      .navbar-header
+        a.navbar-brand(href="#")
+          img(alt="Brand" src="/public/images/tokenlogo.png")
+      form(class="navbar-form navbar-left", role="search")
+        .input-group
+          input(type="text", class="form-control italic", placeholder="Add logo from URL")
+          span.input-group-btn
+            button(type="button", class="btn btn-default search-glyph-button")
+              span(class="glyphicon glyphicon-search")
+      form(class="navbar-form navbar-left")
+        div(class="form-group italic")
+          | Or choose file to upload:
+          span(class="btn btn-default btn-file glyph-button upload-btn")
+            span(class="glyphicon glyphicon-upload")
+            input(type="file")
+  .container
+    .row#upload
+      div(class="col-xs-12 col-sm-4 col-xs-offset-0 col-sm-offset-8 italic text-center")
+        | Your uploaded logo:
+        br
+        img.uploaded-img
+    .row#galery    
+    .row#footer    
+      div(class="col-sm-12 text-center footer")
+        hr
+        a(href="http://www.alex-charlton.com") Alexander
+        | and
+        a(href="http://www.marisarenaud.com") Marisa
+        | , 2015
+
+
+//   div(ng-controller='Main')
+//     h1 Token
+//     div(class='search')
+//       p Search against {{n_logos}} logos
+//       form(novalidate)
+//         input(type='file', file-model='logo')
+//         input(type='text', ng-model='url')
+//         input(type='submit', value='Search', ng-click='logoSearch(url)')
+//         img(ng-src="{{search.src}}")
+//     div(ng-switch='logos', class='search-results')
+//       div(ng-switch-when='none') No logos
+//       div(ng-switch-when='no search') Do a search!
+//       div(ng-switch-when='error') Oops!
+//       ul(ng-switch-default)
+//         li(ng-repeat='logo in logos')
+//           a(ng-href="/org/{{logo.org}}#{{logo._id}}")
+//             img(ng-src='/img_store/{{logo.org}}/{{logo._id}}.png')
+//           | {{logo.distance}}
+
+// <hr>
+// <a href="http://www.alex-charlton.com">Alexander</a> and <a href="http://www.marisarenaud.com">Marisa</a>, 2015.

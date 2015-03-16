@@ -1,18 +1,4 @@
-@import "compass/css3";
-
-body {
-  padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
-}
-
-a {
-  color: #00B7FF;
-}
-
-.search-results ul {
-  list-style-type: none;
-}
-
-.search-results ul li {
-  display: inline;
-}
+@import "../../node_modules/bootstrap-sass/assets/stylesheets/bootstrap-compass";
+@import "../../node_modules/bootstrap-sass/assets/stylesheets/bootstrap";
+@import "custom-variables";
+@import "custom";

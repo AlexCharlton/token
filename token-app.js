@@ -23,7 +23,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(require('node-compass')({mode: 'expanded'}));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use('/public/fonts', express.static(path.join(__dirname, 'node_modules/bootstrap-sass/assets/fonts/')));
 app.use(multer({dest: './uploads/',  putSingleFilesInArray: true}))
 
 app.use('/', routes);
