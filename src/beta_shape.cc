@@ -131,7 +131,6 @@ int get_triangles(const Contours &contours, Triangles &triangles){
     }
     // Get neighbours
     for(size_t i = 0; i < triangles.size(); i++){
-        Triangle t = triangles[i];
         for(size_t e = 0; e < 3; e++){
             if (triangles[i].neighbours[e] >= 0) 
                 continue; // neighbour already found

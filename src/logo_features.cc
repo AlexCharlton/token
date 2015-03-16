@@ -108,7 +108,7 @@ int search_features(const string image, const string db_name,
     if (!get_features(image, features1, shape1, sub_shape1)) return NO_IMAGE;
     float aspect = features1.aspect;
     // Compare against db
-    monotonic_clock::time_point t1 = monotonic_clock::now();
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
     unique_ptr<DBClientCursor> cursor =
         db.query(db_name, MONGO_QUERY("aspect"
                                       <<mongo::GT<< MIN_ASPECT(aspect)
@@ -130,7 +130,7 @@ int search_features(const string image, const string db_name,
                                  f.getStringField("_id"),
                                  f.getStringField("org"));
     }
-    monotonic_clock::time_point t2 = monotonic_clock::now();
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
     duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
     cout << "Searched through logos in " << time_span.count() << " seconds." << endl;
     return 0;
