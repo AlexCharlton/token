@@ -22,8 +22,9 @@ var database_name = process.env['TOKEN_DB'] || 'token'
 var db = mongojs(database_server + "/" + database_name, 
                  ['tags', 'orgs', 'logos', 'features'])
 
-var logo_src_base = '/img_store/'
-var logo_store = path.join('./public', logo_src_base)
+var logo_src_base = '/logos/'
+var logo_store_base = (process.env['AWS']) ? '/opt' : './public'
+var logo_store = path.join(logo_store_base, logo_src_base)
 var search_store = 'searches/'
 var download_dir = 'downloads/'
 
