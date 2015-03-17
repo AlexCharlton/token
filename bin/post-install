@@ -4,7 +4,7 @@ if [ $AWS ]
    then
        compass compile --sass-dir public/stylesheets/ --css-dir public/stylesheets/
        cp -r node_modules/bootstrap-sass/assets/fonts/ public/
-       ln -s /opt/logos public/
+       ln -s /home/ec2-user/logos public/
        echo "AWS post-install done"
 else
        echo "Not an AWS environent, no post-install steps needed"
