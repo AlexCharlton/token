@@ -279,11 +279,17 @@ router.post('/org/:org', function create_logo(req, res, next) {
                             retrieved_from: retrieved_from,
                             active: active, review: review}
                 db.logos.insert(logo, function(err, value){
-                    res.status(201).send(id)
-                    features.extract(id,
-                                     database_name + '.logos',
-                                     database_name + '.features',
-                                     database_server)
+                    try {
+                        features.extract(id,
+                                         database_name + '.logos',
+                                         database_name + '.features',
+                                         database_server)
+                        res.status(201).send(id)
+                    } catch (e){
+                        console.error(e)
+                        fs.unlink(file.path)
+                        res.status(400).send(e)
+                    }
                 })
             },
             function error(e){
@@ -370,11 +376,16 @@ var search_results = function(src, res){
     mv_resize_image(
         src, dest,
         function success(){
-            var results = features.search(dest, 
-                                          database_name + '.features',
-                                          database_server)
-            results.sort(function(a, b){ return a[0] - b[0] })
-            res.send(results)
+            try{
+                var results = features.search(dest, 
+                                              database_name + '.features',
+                                              database_server)
+                results.sort(function(a, b){ return a[0] - b[0] })
+                res.send(results)
+            } catch (e) {
+                console.error(e)
+                res.status(400).send(e)
+            }
             fs.unlink(dest)
         },
         function error(e){
