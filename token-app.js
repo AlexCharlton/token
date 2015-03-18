@@ -8,7 +8,6 @@ var multer  = require('multer');
 
 var routes = require('./routes/index');
 var logos = require('./routes/logos');
-var admin = require('./routes/admin');
 
 var app = express();
 
@@ -29,7 +28,6 @@ app.use(multer({dest: './uploads/',  putSingleFilesInArray: true}))
 
 app.use('/', routes);
 app.use('/r', logos);
-app.use('/admin', admin);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
