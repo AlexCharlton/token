@@ -196,7 +196,8 @@ app.controller(
 
 app.directive('justifiedGallery', ['$window', function($window){
     link = function (scope, element, attrs){
-        var min = 150
+        var max_logos = 100
+        var min_width = 150
         var logos_per_row
 
         function getRow(index){
@@ -224,9 +225,12 @@ app.directive('justifiedGallery', ['$window', function($window){
         }
 
         function constructGallery(logos){
-            logos_per_row = Math.floor(element.width() / min)
+            logos_per_row = Math.floor(element.width() / min_width)
             var width = element.width() / logos_per_row
             var rows = Math.ceil(logos.length / logos_per_row)
+            /// Limit results
+            rows = Math.min(rows, Math.ceil(max_logos / logos_per_row))
+            /// TODO load more
             var i = 0
             _(rows).times(function(r){
                 var row = $('<div class="row logo-row">')
