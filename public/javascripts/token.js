@@ -113,6 +113,9 @@ api.factory('Search', ['$http', '$resource', function ($http, $resource){
     }
 
     var url_search = function(url, cb, err){
+        var normalizer = document.createElement('a')
+        normalizer.href = url
+        url = normalizer.href
         var res = Search.query(
             {logo: url},
             function search(){

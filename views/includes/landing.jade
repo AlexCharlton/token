@@ -1,14 +1,24 @@
 div
   div
-    p
+    h4
       em What logos have a similar visual impact to mine?
-    p Token is a search engine for logos.
+  br
   div
-    p Upload a logo, or enter a URL to perform a search against {{n_logos}} logos!
+    h3 Upload a logo, or enter a URL to perform a search against {{n_logos}} logos!
+  br
+  br
   div
-    p Don’t have any logos? Try one of these:
+    p Don’t have any logos on hand? Try one of these:
     ul.test-searches
-      li Search 1 
-      li Search 2 
-      li Search 3 
-      li Search 4 
+      li
+        a(ng-click="logoSearch('/public/images/demo-searches/demo1.png')")
+          img(src="/public/images/demo-searches/demo1.png")
+      li
+        a(ng-click="logoSearch('/public/images/demo-searches/demo2.png')")
+          img(src="/public/images/demo-searches/demo2.png")
+      li
+        a(ng-click="logoSearch('/public/images/demo-searches/demo3.png')")
+          img(src="/public/images/demo-searches/demo3.png")
+      li
+        a(ng-click="logoSearch('/public/images/demo-searches/demo4.png')")
+          img(src="/public/images/demo-searches/demo4.png")
