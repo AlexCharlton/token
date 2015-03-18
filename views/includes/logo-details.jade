@@ -7,9 +7,6 @@ div(class="col-xs-7 center-block")
   | {{logo.org.name}}
   span(class="label label-success") {{logo.org.active | isActive}}
   br
-  em Uploaded: 
-  | {{logo.date}}
-  br
   ul.tags(ng-repeat="tag in logo.org.tags")
     li {{tag}} {{$last ? '' : ', '}}
   br
