@@ -55,7 +55,10 @@ router.get('/org', function send_orgs(req, res, next) {
         var r = new RegExp(query, 'i');
         db.orgs
             .find({name: r}, function(err, orgs){
-                // TODO check err
+                if (err){
+                    console.error(err)
+                    return
+                }
                 res.send(orgs);
             });
     } else {
@@ -67,7 +70,10 @@ router.get('/org', function send_orgs(req, res, next) {
             .sort({name:1})
             .limit(n_orgs_per_page)
             .skip((page-1)*n_orgs_per_page, function(err, orgs){
-                // TODO check err
+                if (err){
+                    console.error(err)
+                    return
+                }
                 res.send(orgs);
             });
     }
@@ -439,7 +445,10 @@ router.get('/search', function send_results(req, res, next){
 
 function rm_org_from_tags(org, tags){
     db.tags.find({_id: tags}, function(err, tags){
-        if (err) return; // TODO log
+        if (err){
+            console.error(err)
+            return
+        }
         tags.forEach(function(tag){
             var orgs = _.without(tag.orgs, org);
             if (orgs.length == 0) {
