@@ -21,14 +21,17 @@ block content
               input(type="file" file-model="logo")
     .container
       div(ng-switch='logos')
-        .row(ng-switch-when='no search')
+        .row.text-center(ng-switch-when='no search')
           include ./includes/landing.jade
         .row#match(ng-switch-when='none')
           include ./includes/uploaded-logo.jade
           div(class="col-xs-7 center-block")
             b No logos match the current input
-        .row(ng-switch-when='error')
+        .row.text-center(ng-switch-when='error')
           include ./includes/upload-error.jade
+        .row.text-center(ng-switch-when='searching')
+          .center-block
+            img(src="/public/images/spinner.gif")
         #logo-gallery(justified-gallery="logos" ng-switch-default)
           .row#match
             include ./includes/uploaded-logo.jade

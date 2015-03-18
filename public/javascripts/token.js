@@ -161,9 +161,13 @@ app.controller('Main', ['$scope', 'Stats', 'Search', 'Logo', function($scope, St
 
     $scope.logoSearch = function(url){
         if (url){
+            $scope.logos = "searching"
             Search.urlSearch(url, display_results, search_error)
-        } else {
-            Search.uploadLogoSearch($scope.logo, display_results, search_error)
+        } else if ($scope.logo){
+            $scope.logos = "searching"
+            Search.uploadLogoSearch($scope.logo,
+                                    display_results,
+                                    search_error)
         }
     }
 
@@ -271,8 +275,9 @@ app.directive('fileModel', ['$parse', function ($parse) {
             element.bind('change', function(){
                 scope.$apply(function(){
                     modelSetter(scope, element[0].files[0])
+                    scope.logoSearch(null)
                 })
-                scope.logoSearch(null)
+                
             })
         }
     }
