@@ -295,6 +295,6 @@ app.filter("isActive", function(){
 
 app.filter("matchPercent", function(){
     return function(distance){
-        return Math.max(0, Math.round(100 - distance*100))
+        return Math.max(0, Math.round(100 - distance*500))
     }
 })
