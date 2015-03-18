@@ -113,7 +113,6 @@ api.factory('Search', ['$http', '$resource', function ($http, $resource){
     }
 
     var url_search = function(url, cb, err){
-        console.log("url search")
         var res = Search.query(
             {logo: url},
             function search(){
@@ -197,12 +196,10 @@ app.controller(
 app.directive('justifiedGallery', ['$window', function($window){
     link = function (scope, element, attrs){
         var max_logos = 100
+        var padding = 10
         var min_width = 150
         var logos_per_row
-
-        function getRow(index){
-            return Math.floor(index / logos_per_row)
-        }
+        var logos
 
         function moveBm(){
             var b = $('#bookmark')
@@ -224,13 +221,18 @@ app.directive('justifiedGallery', ['$window', function($window){
             addBookmark($(e))
         }
 
-        function constructGallery(logos){
+        function constructGallery(){
             logos_per_row = Math.floor(element.width() / min_width)
-            var width = element.width() / logos_per_row
+            var width = (element.width() / logos_per_row)
             var rows = Math.ceil(logos.length / logos_per_row)
             /// Limit results
             rows = Math.min(rows, Math.ceil(max_logos / logos_per_row))
             /// TODO load more
+
+            var match = $('#match')
+            match.parent().empty()
+            match.appendTo('#logo-gallery')
+
             var i = 0
             _(rows).times(function(r){
                 var row = $('<div class="row logo-row">')
@@ -242,7 +244,7 @@ app.directive('justifiedGallery', ['$window', function($window){
                     var img = $('<img src="/public/logos/' + 
                                 logo.org + '/' + logo._id+ '.png">')
                     wrapper.width(width)
-                    img.width(width)
+                    img.width(width - padding)
                         .appendTo(wrapper)
                         .on("load", function(){
                             var i = $(this)
@@ -260,8 +262,16 @@ app.directive('justifiedGallery', ['$window', function($window){
             })
         }
 
+        angular.element($window).bind('resize', function() {
+            if (logos){
+                constructGallery()
+                scope.$apply();
+            }
+        });
+
         scope.$watch(attrs.justifiedGallery, function(value){
-            constructGallery(value)
+            logos = value
+            constructGallery()
         })
     }
 

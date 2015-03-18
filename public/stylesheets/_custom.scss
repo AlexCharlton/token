@@ -122,6 +122,7 @@ ul.test-searches li {
     padding-top:5px;
     @extend .img-responsive;
     max-height: 150px;
+    padding-bottom:20px;
 }
 
 //Matched Logo
@@ -182,9 +183,11 @@ ul.tags li {
   border-bottom: 1px solid $light;
   padding: 20px 0 30px;
 }
+
 .logo-row {
   padding: 10px 0;
 }
+
 .logo-row img {
   margin: 0;
   padding: 0;
