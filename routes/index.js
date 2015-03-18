@@ -5,9 +5,9 @@ router.get('/', function(req, res, next) {
     res.render('index');
 });
 
-router.get('/about', function(req, res, next) {
-    res.render('about');
-});
+// router.get('/about', function(req, res, next) {
+//     res.render('about');
+// });
 
 // router.get('/tags', function(req, res, next) {
 //     res.render('index', { title: 'Token' });
@@ -24,11 +24,7 @@ router.get('/about', function(req, res, next) {
 // });
 
 // router.get('/org/:org', function(req, res, next) {
-//     res.render('index', { title: 'Token' });
+//     res.render('logo');
 // });
-
-router.get('/org/:org', function(req, res, next) {
-    res.render('logo');
-});
 
 module.exports = router;

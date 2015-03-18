@@ -1,0 +1,17 @@
+div(class="match clearfix col-xs-5")
+  img(class="match-img" ng-src="/public/logos/{{logo.org._id}}/{{logo._id}}.png")
+div(class="col-xs-7 center-block")
+  b {{logo.name}}
+  span(class="label label-default") {{logo.active | isActive}}
+  br
+  | {{logo.org.name}}
+  span(class="label label-success") {{logo.org.active | isActive}}
+  br
+  em Uploaded: 
+  | {{logo.date}}
+  br
+  ul.tags(ng-repeat="tag in logo.org.tags")
+    li {{tag}} {{$last ? '' : ', '}}
+  br
+  br
+  span(class="label label-danger") {{logo.distance | matchPercent}}% match

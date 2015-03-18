@@ -11,7 +11,7 @@ api.factory('Stats', ['$resource', function($resource){
     }
 }])
 
-api.factory('Org', ['$resource', '$location', function($resource, $location){
+api.factory('OrgPage', ['$resource', '$location', function($resource, $location){
     var Org = $resource('/r/org/:org')
 
     var logo = function(org){ // Which logo is currently active?
@@ -47,27 +47,51 @@ api.factory('Org', ['$resource', '$location', function($resource, $location){
     return {get: get, logo: logo}
 }])
 
-api.factory('Logo', ['$resource', function($resource){
+api.factory('Logo', ['$resource', 'Org', function($resource, Org){
     var Logo = $resource('/r/logo/:logo') 
 
     var logo = function(logo_id, callback, error_callback){
         var l = Logo.get(
             {logo: logo_id}, 
-            function get_logo(){ callback(l) },
+            function get_logo(){
+                Org(l.org, 
+                    function(org){
+                        l.org = org
+                        callback(l)
+                    },
+                    error_callback)
+            },
             error_callback)
     }
 
     return logo
 }])
 
-api.factory('Search', ['$http', '$resource', 'Logo', function ($http, $resource, Logo){
+api.factory('Org', ['$resource', function($resource){
+    var Org = $resource('/r/org/:org') 
+
+    var org = function(org_id, callback, error_callback){
+        var o = Org.get(
+            {org: org_id}, 
+            function get_logo(){ callback(o) },
+            error_callback)
+    }
+
+    return org
+}])
+
+api.factory('Search', ['$http', '$resource', function ($http, $resource){
     var Search = $resource('/r/search') 
 
     var process_results = function(r){
+        var i = 0
         return _.map(r, function(a){ 
-            return {distance: a[0],
-                    _id: a[1],
-                    org: a[2]}
+            ret = {distance: a[0],
+                   index: i,
+                   _id: a[1],
+                   org: a[2]}
+            i += 1
+            return ret
         })
     }
 
@@ -93,8 +117,6 @@ api.factory('Search', ['$http', '$resource', 'Logo', function ($http, $resource,
         var res = Search.query(
             {logo: url},
             function search(){
-                console.log("results: ")
-                console.log(res)
                 cb({logos: process_results(res),
                     search: {src: url}})
             },
@@ -108,13 +130,26 @@ api.factory('Search', ['$http', '$resource', 'Logo', function ($http, $resource,
              urlSearch: url_search }
 }])
 
-app.controller('Main', ['$scope', 'Stats', 'Search', function($scope, Stats, Search){
+app.controller('Main', ['$scope', 'Stats', 'Search', 'Logo', function($scope, Stats, Search, Logo){
+    var display_logo = function(result){
+        Logo(result._id,
+             function(logo){
+                 logo.distance = result.distance
+                 $scope.logo = logo
+             },
+             function(err){
+                 console.error(err)
+             })
+    }
+    $scope.display_logo = display_logo
+    
     $scope.logos = "no search"
     var display_results = function(results){
         $scope.search = results.search
-        if (_.isEmpty(results)){
+        if (_.isEmpty(results.logos)){
             $scope.logos = "none"
         } else {
+            display_logo(results.logos[0])
             $scope.logos = results.logos
         }
     }
@@ -125,11 +160,10 @@ app.controller('Main', ['$scope', 'Stats', 'Search', function($scope, Stats, Sea
     }
 
     $scope.logoSearch = function(url){
-        var file = $scope.logo
-        if (file){
-            Search.uploadLogoSearch(file, display_results, search_error)
-        } else {
+        if (url){
             Search.urlSearch(url, display_results, search_error)
+        } else {
+            Search.uploadLogoSearch($scope.logo, display_results, search_error)
         }
     }
 
@@ -141,8 +175,8 @@ app.controller('Main', ['$scope', 'Stats', 'Search', function($scope, Stats, Sea
 
 app.controller(
     'Organization', 
-    ['$scope', '$window', 'Org', 
-     function($scope, $window, Org){
+    ['$scope', '$window', 'OrgPage', 
+     function($scope, $window, OrgPage){
          Org.get(
              function(result){ 
                  $scope.org = result
@@ -156,6 +190,77 @@ app.controller(
              function(err){ $window.location.href = '/404' })
      }])
 
+app.directive('justifiedGallery', ['$window', function($window){
+    link = function (scope, element, attrs){
+        var min = 150
+        var logos_per_row
+
+        function getRow(index){
+            return Math.floor(index / logos_per_row)
+        }
+
+        function moveBm(){
+            var b = $('#bookmark')
+            if (b){
+                var h = b.parent().parent().height()
+                b.css("top", "-" + (h + 13) + "px")
+            }
+        }
+
+        function addBookmark(el){
+            $('#bookmark').remove()
+            var b = $("<img id='bookmark', src='/public/images/bookmark.svg'>")
+            b.appendTo(el)
+            moveBm()
+        }
+
+        function moveMatch(e){
+            $(e).parent().before($('#match'))
+            addBookmark($(e))
+        }
+
+        function constructGallery(logos){
+            logos_per_row = Math.floor(element.width() / min)
+            var width = element.width() / logos_per_row
+            var rows = Math.ceil(logos.length / logos_per_row)
+            var i = 0
+            _(rows).times(function(r){
+                var row = $('<div class="row logo-row">')
+                row.appendTo(element)
+                _(logos_per_row).times(function(l){
+                    if (i == logos.length) return
+                    var logo = logos[i]
+                    var wrapper = $('<div class="result-wrapper">')
+                    var img = $('<img src="/public/logos/' + 
+                                logo.org + '/' + logo._id+ '.png">')
+                    wrapper.width(width)
+                    img.width(width)
+                        .appendTo(wrapper)
+                        .on("load", function(){
+                            var i = $(this)
+                            i.parent().height(i.height())
+                            moveBm()
+                        })
+                    wrapper.appendTo(row)
+                        .on("click", function(e) {
+                            scope.display_logo(logo)
+                            moveMatch(this)
+                        })
+                    if (i == 0) addBookmark(wrapper)
+                    i += 1
+                })
+            })
+        }
+
+        scope.$watch(attrs.justifiedGallery, function(value){
+            constructGallery(value)
+        })
+    }
+
+    return {link: link,
+            restrict: 'A'}
+}])
+
 app.directive('fileModel', ['$parse', function ($parse) {
     return {
         restrict: 'A',
@@ -167,7 +272,20 @@ app.directive('fileModel', ['$parse', function ($parse) {
                 scope.$apply(function(){
                     modelSetter(scope, element[0].files[0])
                 })
+                scope.logoSearch(null)
             })
         }
     }
 }])
+
+app.filter("isActive", function(){
+    return function(activep){
+        return (activep) ? "Active" : "Inactive"
+    }
+})
+
+app.filter("matchPercent", function(){
+    return function(distance){
+        return Math.max(0, Math.round(100 - distance*100))
+    }
+})
