@@ -160,7 +160,7 @@ router.delete('org/:org', function rm_org(req, res, next) {
         var org = orgs[0];
         org.logos.forEach(function(logo){ rm_logo(logo, org._id) });
         db.orgs.remove({_id: org._id});
-        fs.rmdir(path.join(logo_store, org._id)
+        fs.rmdir(path.join(logo_store, org._id))
         res.status(204).end();
     });
 });
