@@ -21,7 +21,7 @@
 #define MAX_ASPECT(A) (A * (1.0 + ASPECT_CUTOFF))
 #define MIN_ASPECT(A) (A / (1.0 + ASPECT_CUTOFF))
 #define MATCH_CUTOFF 1.0
-#define SHAPE_MATCH_CUTOFF 1.5
+#define SHAPE_MATCH_CUTOFF 1.0
 #define SHAPE_C 1.0
 #define SUB_SHAPE_C 0.01
 #define COLOR_MATCH_C 1.0
