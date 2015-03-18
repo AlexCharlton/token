@@ -371,6 +371,7 @@ router.delete('org/:org/:logo', function rm_logo(req, res, next) {
 
 
 //// Search
+var MAX_RESULTS = 500
 var search_results = function(src, res){
     var dest = path.join(search_store, shortid.generate() + '.png')
     mv_resize_image(
@@ -381,6 +382,7 @@ var search_results = function(src, res){
                                               database_name + '.features',
                                               database_server)
                 results.sort(function(a, b){ return a[0] - b[0] })
+                results = results.slice(0, MAX_RESULTS)
                 res.send(results)
             } catch (e) {
                 console.error(e)
