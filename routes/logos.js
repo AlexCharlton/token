@@ -83,7 +83,6 @@ router.get('/org/:org', function send_org(req, res, next) {
     // Send org
     db.orgs.find({_id: req.params.org}, function(err, orgs){
         if (err || orgs.length == 0) {
-            // TODO proper logging
             console.error("No organization found: " + req.params.org);
             return res.status(404).send("No such organization: " + req.params.org);
         }
@@ -109,7 +108,7 @@ router.post('/org', function create_org(req, res, next) {
     var active = o.active;
     active = (typeof active == 'undefined') ? true : active;
     if (!(name && tags )){
-        console.error(req.body); // TODO log
+        console.error(req.body);
         return res.status(400).send("Missing form data in org creation " 
                                     + name + " " + " " + tags + " " + website);
     }
@@ -121,13 +120,12 @@ router.post('/org', function create_org(req, res, next) {
     });
 });
 
-//// TODO Disabled until updated
+//// TODO Disabled until fixed
 // router.put('/org/:org', function update_org(req, res, next) {
     // TODO ADMIN
 //     // update org
 //     db.orgs.find({_id: req.params.org}, function(err, orgs){
 //         if (err || orgs.length == 0) {
-//             // TODO proper logging
 //             console.error("No organization found: " + req.params.org);
 //             return res.status(404).send("No such organization: " + req.params.org);
 //         }
@@ -156,7 +154,6 @@ router.delete('org/:org', function rm_org(req, res, next) {
     // Remove org
     db.orgs.find({_id: req.params.org}, function(err, orgs){
         if (err || orgs.length == 0) {
-            // TODO proper logging
             console.error("No organization found: " + req.params.org);
             return res.status(404).send("No such organization: " + req.params.org);
         }
@@ -172,12 +169,10 @@ router.get('/flagged', function send_org(req, res, next) {
     // Send flagged orgs and logos
     db.orgs.find({review: true}, function(err, orgs){
         if (err) {
-            // TODO proper logging
             return res.status(500).send("Cannot get flagged orgs");
         }
         db.logos.find({review: true}, function(err, logos){
             if (err) {
-                // TODO proper logging
                 return res.status(500).send("Cannot get flagged logos");
             }
             res.send({org: orgs, logo: logos});
@@ -199,7 +194,6 @@ router.get('/flagged', function send_org(req, res, next) {
 function get_logo(logo, callback){
     db.logos.find({_id: logo}, function(err, logos){
         if (err || logos.length == 0) {
-            // TODO proper logging
             console.error("No logo found: " + req.params.logo); 
             callback("No such logo: " + logo, null)
         } else {
@@ -212,7 +206,6 @@ router.get('/logo/:logo', function send_logo(req, res, next) {
     // Send logo
     db.logos.find({_id: req.params.logo}, function(err, logos){
         if (err || logos.length == 0) {
-            // TODO proper logging
             console.error("No logo found: " + req.params.logo); 
             return res.status(404).send("No such logo: " + req.params.logo);
         }
@@ -251,7 +244,6 @@ router.post('/org/:org', function create_logo(req, res, next) {
     // add new logo
     db.orgs.find({_id: req.params.org}, function(err, orgs){
         if (err || orgs.length == 0) {
-            // TODO proper logging
             console.error("No organization found: " + req.params.org)
             return res.status(404).send("No such organization: " + req.params.org)
         }
@@ -309,13 +301,12 @@ router.post('/org/:org', function create_logo(req, res, next) {
     })
 })
 
-//// TODO Disabled until updated
+//// TODO Disabled until fixed
 // router.put('/org/:org/:logo', function update_logo(req, res, next) {
     // TODO ADMIN
 //     //update logo
 //     db.logos.find({_id: req.params.logo}, function(err, logos){
 //         if (err || logos.length == 0) {
-//             // TODO proper logging
 //             console.error("No logo found: " + req.params.logo);
 //             return res.status(404).send("No such logo: " + req.params.logo);
 //         }
@@ -345,7 +336,6 @@ router.post('/org/:org', function create_logo(req, res, next) {
 function rm_logo(logo, org_id){
     db.logos.find({_id: logo}, function(err, logos){
         if (err || logos.length == 0) {
-            // TODO proper logging
             console.error("Tried to delete logo, but wasn't found: " + logo);
         }
         fs.unlink(logos[0].path)
@@ -359,7 +349,6 @@ router.delete('org/:org/:logo', function rm_logo(req, res, next) {
     var logo = req.params.logo;
     db.orgs.find({_id: req.params.org}, function(err, orgs){
         if (err || orgs.length == 0) {
-            // TODO proper logging
             console.error("No organization found: " + req.params.org);
             return res.status(404).send("No such organization: " + req.params.org);
         }
@@ -470,7 +459,6 @@ router.get('/tags', function send_tags(req, res, next){
     // Send list of tags
     db.tags.find({}, {_id:1}).sort({_id:1}, function(err, tags){
         if (err || tags.length == 0) {
-            // TODO proper logging
             console.error("No tags found");
             return res.status(404).send("No tags found");
         }
@@ -482,7 +470,6 @@ router.get('/tags/:tag', function send_tag(req, res, next){
     // Send organizations in tag
     db.tags.find({_id: req.params.tag}, function(err, tags){
         if (err || tags.length == 0) {
-            // TODO proper logging
             console.error("No tag found: " + req.params.tag);
             return res.status(404).send("No such tag: " + req.params.tag);
         }
