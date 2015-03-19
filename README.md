@@ -28,7 +28,7 @@ A small program, `/build/BUILD_TYPE/test`, is created that, when run in the top-
 - `TOKEN_PASSWORD`: The admin password for Token, used for API calls
 
 ## AWS
-With the [`eb` command line tool](http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/eb-cli3-getting-set-up.html) be deployed to your AWS account with the (standard)[http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create_deploy_nodejs.sdlc.html] `eb init`, `eb create`, `eb deploy`.
+With the [`eb` command line tool](http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/eb-cli3-getting-set-up.html) be deployed to your AWS account with the [standard](http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create_deploy_nodejs.sdlc.html) `eb init`, `eb create`, `eb deploy`.
 
 All dependencies are automatically taken care of.
 
