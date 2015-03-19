@@ -1,10 +1,10 @@
 # Token
 [Token](http://www.tokn.ca) is an alpha-quality search engine for logos. It’s written in Node.js with Express, Angular, and MongoDB. The performance critical parts are a Node Addon, written in C++. This repository is an AWS Elastic Beanstalk application. 
 
-At this stage, the results of Token are not as good as they could be. The main algorithm has only been given a cursory tuning.
+At this early stage, the results that Token returns are not as good as they could be. The main algorithm has only been given a cursory tuning.
 
 ## Dependencies
-Aside from `npm` installable dependencies, Token depends on three libraries:
+Aside from `npm` installable dependencies, Token requires three libraries:
 
 - [GraphicsMagick](http://www.graphicsmagick.org/): A popular image manipulation utility
 - [OpenCV 3.0 Beta](https://github.com/Itseez/opencv)
@@ -15,9 +15,9 @@ You will probably need to install the later two from source.
 A C++ compiler and Boost are also necessary in order to build Token.
 
 ## Building
-After the dependencies are installed, `npm install` will build Token and install its Node dependencies. `npm install --debug` will create a debug build that will print out verbose information when logos are compared to one another.
+When dependencies are installed, `npm install` will build Token and install its Node dependencies. `npm install --debug` will create a debug build that prints out verbose information when logos are compared to one another.
 
-A small program, `/build/BUILD_TYPE/test`, is created that, when run in the top-level directory, will show some logos being compared, with some added graphical aids. 
+A small program, `/build/BUILD_TYPE/test`, is created upon building that can be used to see how features are extracted from logos, and how they are compared. It must be run in the top-level directory.
 
 ## Running
 `npm start` will start a Token server running. The following environment variables can be customized to change the behaviour of the server:
@@ -49,11 +49,13 @@ This is Token’s primary functionality, written in C++ and located in `src/`. `
 Contained in `public/` and `views/`. Notably, `public/javascripts/token.js` holds the client-side logic.
 
 ## API
-The logos in Token’s database are organized into *organizations*. As you would expect, a given organization can have multiple logos. Each logo still has a unique ID. Operations are provided for adding and deleting logos and organizations (with admin identification), fetching information on organizations, logos, and tags (which are associated with organizations), as well as searching for logos similar to ones you provide.
+The logos in Token’s database are organized into *organizations*. As you would expect, a given organization can have multiple logos. Each logo still has a unique ID. Operations are provided for adding and deleting logos and organizations (with admin identification), fetching information on organizations, logos, and tags (which are associated with organizations), as well as searching for similar logos.
+
+Some `PUT` operations are notably missing in this build, but are planned for future versions.
 
 URL                   | Method | Parameters | Description | Returns 
 ----------------------|--------|------------|-------------|--------
-`/r/org`                | `GET`    | `[page INTEGER]` | Returned `page` of a paged list of organizations. `page` defaults to zero. | JSON array of no more than 100 organizations
+`/r/org`                | `GET`    | `[page INTEGER]` | Returns `page` of a paged list of organizations. `page` defaults to zero. | JSON array of no more than 100 organizations
 `/r/org`                | `GET`    | `[q STRING]` | Search for an organization matching the name `q` | JSON array of organizations
 `/r/org`                | `POST`   | `[password STRING]` `[org JSON]`* | Add a new organization | ID of the newly created organization
 `/r/org/ORG_ID`         | `GET`    | | Information about an organization | JSON organization object
@@ -63,9 +65,9 @@ URL                   | Method | Parameters | Description | Returns
 `/r/logo/LOGO_ID`       | `GET`    | | Information about a logo | JSON logo object
 `/r/search/`            | `POST`   | `[logo FILE]` | Search for logos matching the given file | JSON array of `[distance, logo_id, org_id]` tuples, sorted by increasing `distance`
 `/r/search/`            | `GET`    | `[logo STRING]` | Search for logos matching the file at the given URL | JSON array of `[distance, logo_id, org_id]` tuples, sorted by increasing `distance`
-`/r/tags/`              | `GET`    | | List of tags | JSON array of tag strings
+`/r/tags/`              | `GET`    | | List tags | JSON array of tag strings
 `/r/tags/TAG`           | `GET`    | | Organizations with the given `TAG` | JSON array of organization IDs
-`/r/stats`              | `GET`    | | Information about Token | JSON object: `{orgs: N_ORGS, logos: N_LOGOS}`
+`/r/stats`              | `GET`    | | Information about Token instance | JSON object: `{orgs: N_ORGS, logos: N_LOGOS}`
 
 \*: A JSON object with the following fields: `{name: STRING, tags: LIST_OF_STRINGS, [website: STRING, active: BOOL]}`
 
