@@ -270,21 +270,24 @@ router.post('/org/:org', function create_logo(req, res, next) {
                             date: date, name: name, org: org._id,
                             retrieved_from: retrieved_from,
                             active: active, review: review}
+
+                var abort = function(e){
+                    console.error(e)
+                    fs.unlink(file_path)
+                    res.status(400).send(e)
+                }
                 db.logos.insert(logo, function(err, value){
+                    if (err) return abort(err)
                     try {
                         features.extract(id,
                                          database_name + '.logos',
                                          database_name + '.features',
                                          database_server)
                         res.status(201).send(id)
-                    } catch (e){
-                        console.error(e)
-                        fs.unlink(file.path)
-                        res.status(400).send(e)
-                    }
+                    } catch (e){ abort(e) }
                 })
             },
-            function error(e){
+            function(e){
                 console.error(e)
                 fs.unlink(file.path)
                 res.status(400).send(e)
