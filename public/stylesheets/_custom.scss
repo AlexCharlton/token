@@ -109,7 +109,11 @@ ul.test-searches li {
   display: inline;
   margin: 0;
   padding: 0;
+  cursor: pointer;
+}
 
+.landing {
+  color: $primary;
 }
 
 //Uploaded Logo
