@@ -1,5 +1,5 @@
+/// API module, used by `token_app`
 var api = angular.module('token_api', ['ngResource'])
-var app = angular.module('token', ['token_api'])
 
 api.config(function($locationProvider) {
     $locationProvider.html5Mode(true)
@@ -132,6 +132,10 @@ api.factory('Search', ['$http', '$resource', function ($http, $resource){
              urlSearch: url_search }
 }])
 
+
+/// App
+var app = angular.module('token', ['token_api'])
+// Used by logos.jade
 app.controller('Main', ['$scope', 'Stats', 'Search', 'Logo', function($scope, Stats, Search, Logo){
     var display_logo = function(result){
         Logo(result._id,
@@ -179,6 +183,7 @@ app.controller('Main', ['$scope', 'Stats', 'Search', 'Logo', function($scope, St
     })
 }])
 
+// Currently unused
 app.controller(
     'Organization', 
     ['$scope', '$window', 'OrgPage', 
@@ -196,6 +201,7 @@ app.controller(
              function(err){ $window.location.href = '/404' })
      }])
 
+// Build gallery of results
 app.directive('justifiedGallery', ['$window', function($window){
     link = function (scope, element, attrs){
         var max_logos = 100
@@ -282,6 +288,7 @@ app.directive('justifiedGallery', ['$window', function($window){
             restrict: 'A'}
 }])
 
+// Perform a logo search when a file has been selected
 app.directive('fileModel', ['$parse', function ($parse) {
     return {
         restrict: 'A',
@@ -300,6 +307,7 @@ app.directive('fileModel', ['$parse', function ($parse) {
     }
 }])
 
+// Filters
 app.filter("isActive", function(){
     return function(activep){
         return (activep) ? "Active" : "Inactive"
