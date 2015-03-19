@@ -52,14 +52,14 @@ Contained in `public/` and `views/`. Notably, `public/javascripts/token.js` hold
 The logos in Token’s database are organized into *organizations*. As you would expect, a given organization can have multiple logos. Each logo still has a unique ID. Operations are provided for adding and deleting logos and organizations (with admin identification), fetching information on organizations, logos, and tags (which are associated with organizations), as well as searching for logos similar to ones you provide.
 
 URL                   | Method | Parameters | Description | Returns 
-----------------------|--------|---------
+----------------------|--------|------------|-------------|--------
 `/r/org`                | `GET`    | `[page INTEGER]` | Returned `page` of a paged list of organizations. `page` defaults to zero. | JSON array of no more than 100 organizations
 `/r/org`                | `GET`    | `[q STRING]` | Search for an organization matching the name `q` | JSON array of organizations
 `/r/org`                | `POST`   | `[org JSON]`* | Add a new organization | ID of the newly created organization
 `/r/org/ORG_ID`         | `GET`    | | Information about an organization | JSON organization object
 `/r/org/ORG_ID`         | `POST`   | `[image FILE]` `[logo JSON]`** | Add a new logo | ID of the newly created logo
-`/r/org/ORG_ID`         | `DELETE` | | Delete the given organization |
-`/r/org/ORG_ID/LOGO_ID` | `DELETE` | | Delete the given logo |
+`/r/org/ORG_ID`         | `DELETE` | | Delete the given organization | 
+`/r/org/ORG_ID/LOGO_ID` | `DELETE` | | Delete the given logo | 
 `/r/logo/LOGO_ID`       | `GET`    | | Information about a logo | JSON logo object
 `/r/search/`            | `POST`   | `[logo FILE]` | Search for logos matching the given file | JSON array of `[distance, logo_id, org_id]` tuples, sorted by increasing `distance`
 `/r/search/`            | `GET`    | `[logo STRING]` | Search for logos matching the file at the given URL | JSON array of `[distance, logo_id, org_id]` tuples, sorted by increasing `distance`
