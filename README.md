@@ -55,11 +55,11 @@ URL                   | Method | Parameters | Description | Returns
 ----------------------|--------|------------|-------------|--------
 `/r/org`                | `GET`    | `[page INTEGER]` | Returned `page` of a paged list of organizations. `page` defaults to zero. | JSON array of no more than 100 organizations
 `/r/org`                | `GET`    | `[q STRING]` | Search for an organization matching the name `q` | JSON array of organizations
-`/r/org`                | `POST`   | `[org JSON]`* | Add a new organization | ID of the newly created organization
+`/r/org`                | `POST`   | `[password STRING]` `[org JSON]`* | Add a new organization | ID of the newly created organization
 `/r/org/ORG_ID`         | `GET`    | | Information about an organization | JSON organization object
-`/r/org/ORG_ID`         | `POST`   | `[image FILE]` `[logo JSON]`** | Add a new logo | ID of the newly created logo
-`/r/org/ORG_ID`         | `DELETE` | | Delete the given organization | 
-`/r/org/ORG_ID/LOGO_ID` | `DELETE` | | Delete the given logo | 
+`/r/org/ORG_ID`         | `POST`   | `[password STRING]` `[image FILE]` `[logo JSON]`** | Add a new logo | ID of the newly created logo
+`/r/org/ORG_ID`         | `DELETE` | `[password STRING]` | Delete the given organization | 
+`/r/org/ORG_ID/LOGO_ID` | `DELETE` | `[password STRING]` | Delete the given logo | 
 `/r/logo/LOGO_ID`       | `GET`    | | Information about a logo | JSON logo object
 `/r/search/`            | `POST`   | `[logo FILE]` | Search for logos matching the given file | JSON array of `[distance, logo_id, org_id]` tuples, sorted by increasing `distance`
 `/r/search/`            | `GET`    | `[logo STRING]` | Search for logos matching the file at the given URL | JSON array of `[distance, logo_id, org_id]` tuples, sorted by increasing `distance`
