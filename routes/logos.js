@@ -120,34 +120,28 @@ router.post('/org', function create_org(req, res, next) {
     });
 });
 
-//// TODO Disabled until fixed
-// router.put('/org/:org', function update_org(req, res, next) {
-    // TODO ADMIN
-//     // update org
-//     db.orgs.find({_id: req.params.org}, function(err, orgs){
-//         if (err || orgs.length == 0) {
-//             console.error("No organization found: " + req.params.org);
-//             return res.status(404).send("No such organization: " + req.params.org);
-//         }
-//         var org = orgs[0];
-//         var old_tags = org.tags;
-//         var name = req.params.name || org.name;
-//         var tags = req.params.tags || org.tags;
-//         var website = req.params.tags || org.website;
-//         var active = req.params.active;
-//         var review = false; // TODO set based on name match?
-//         active = (typeof active == 'undefined') ? org.active : active;
-//         review = (typeof review == 'undefined') ? org.review : review;
-//         rm_org_from_tags(name, _.difference(old_tags, tags));
-//         db.orgs.update({_id: req.params.org}, 
-//                        {$set: {name: name,
-//                                tags: tags,
-//                                website: website,
-//                                active: active,
-//                                review: review}});
-//         res.status(204).end();
-//     });
-// });
+router.put('/org/:org', function update_org(req, res, next) {
+    if (not_admin(req.body.password, res)) return
+    // update org
+    db.orgs.find({_id: req.params.org}, function(err, orgs){
+        if (err || orgs.length == 0) {
+            console.error("No organization found: " + req.params.org);
+            return res.status(404).send("No such organization: " + req.params.org);
+        }
+        var org = orgs[0];
+        var o = JSON.parse(req.body.org)
+        if (o){
+            if (o.name) org.name = o.name
+            if (o.active) org.active = o.active
+            if (o.review) org.review = o.review
+            if (o.tags) org.tags = o.tags
+            if (o.website) org.website = o.website
+            db.orgs.update({_id: req.params.org}, 
+                           {$set: ort});
+        }
+        res.status(204).end();
+    });
+});
 
 router.delete('org/:org', function rm_org(req, res, next) {
     if (not_admin(req.params.password, res)) return
@@ -301,37 +295,69 @@ router.post('/org/:org', function create_logo(req, res, next) {
     })
 })
 
-//// TODO Disabled until fixed
-// router.put('/org/:org/:logo', function update_logo(req, res, next) {
-    // TODO ADMIN
-//     //update logo
-//     db.logos.find({_id: req.params.logo}, function(err, logos){
-//         if (err || logos.length == 0) {
-//             console.error("No logo found: " + req.params.logo);
-//             return res.status(404).send("No such logo: " + req.params.logo);
-//         }
-//         var logo = logos[0];
-//         // if new file
-//           // req.files
-//           // TODO convert logo to uniform size, type; save
-//           // var features = features();
-//         // else
-//         var features = false;
-//         var file = req.params.file || logo.file;
-//         var date = req.params.date || logo.date;
-//         var active = req.params.active;
-//         var review = false; // TODO set based on match?
-//         active = (typeof active == 'undefined') ? logo.active : active;
-//         review = (typeof review == 'undefined') ? logo.review : review;
-//         db.logos.update({_id: logo._id}, 
-//                        {$set: {file: file,
-//                                date: date,
-//                                features: features,
-//                                active: active,
-//                                review: review}});
-//         res.status(204).end();
-//     });
-// });
+router.put('/org/:org/:logo', function update_logo(req, res, next) {
+    if (not_admin(req.body.password, res)) return
+    //update logo
+    db.logos.find({_id: req.params.logo}, function(err, logos){
+        if (err || logos.length == 0) {
+            console.error("No logo found: " + req.params.logo)
+            return res.status(404).send("No such logo: " + req.params.logo)
+        }
+        var logo = logos[0]
+        var l = JSON.parse(req.body.logo)
+        if (l){
+            if (l.name) logo.name = l.name
+            if (l.date) logo.date = l.date
+            if (l.retrieved_from) logo.retrieved_from = l.retrieved_from
+            if (l.active) logo.active = l.active
+            if (l.review) logo.review = l.review
+        }
+        db.logos.update({_id: logo._id}, 
+                        {$set: logo});
+
+        var new_file = req.files.image
+        new_file = (new_file) ? new_file[0] : new_file
+        if (new_file){
+            var abort = function(e){
+                console.error(e)
+                fs.unlink(new_file.path)
+                res.status(400).send(e)
+            }
+            var temp_file = logo.path + '.tmp'
+            mv_resize_image(
+                new_file.path, temp_file, 
+                function success(){
+                    try {
+                        features.extract(logo.id,
+                                         database_name + '.logos',
+                                         database_name + '.features',
+                                         database_server)
+                        fs.rename(temp_file, logo.path, function(err){
+                            if (err){
+                                console.error(err)
+                                fs.unlink(temp_file)
+                                res.status(400).send(err)
+                            } else {
+                                res.status(204).end();
+                            }
+                        })
+                    } catch (e){
+                        console.error(e)
+                        fs.unlink(temp_file)
+                        res.status(400).send(e)
+                    }
+                },
+                function(e){
+                    console.error(e)
+                    fs.unlink(new_file.path)
+                    res.status(400).send(e)
+                }
+            )
+        } else {
+            res.status(204).end();
+        }
+    })
+})
 
 function rm_logo(logo, org_id){
     db.logos.find({_id: logo}, function(err, logos){
