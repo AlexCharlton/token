@@ -142,7 +142,7 @@ int get_features(const string file, Features &f, Contour &shape,
     im = imread(file, CV_LOAD_IMAGE_COLOR);
     if (im.empty()) return 0;
     get_shapes(im, f, shape, sub_shape);
-    if (shape.size() == 0) return 0;
+    if (shape.size() < 3) return 0;
     Rect bb = boundingRect(shape);
     f.aspect = 1.0 * bb.width / bb.height;
     Mat cropped = im(bb);
@@ -229,15 +229,24 @@ void draw_features(const string file, const Features &f,
 void get_draw_features(const string file){
     Features f;
     Contour s, ss;
-    get_features(file, f, s, ss);
+    if (!get_features(file, f, s, ss)){
+        cout << "Could not get features from " << file << endl;
+        return;
+    }
     draw_features(file, f, s, ss);
 }
 
 void compare_logos(const string a, const string b){
     Features fa, fb;
     Contour sa, ssa, sb, ssb;
-    get_features(a, fa, sa, ssa);
-    get_features(b, fb, sb, ssb);
+    if (!get_features(a, fa, sa, ssa)){
+        cout << "Could not get features from " << a << endl;
+        return;
+    }
+    if (!get_features(b, fb, sb, ssb)){
+        cout << "Could not get features from " << b << endl;
+        return;
+    }
     draw_features(a, fa, sa, ssa);
     draw_features(b, fb, sb, ssb);
     float dist = feature_distance(fa, fb, sa, sb, ssa, ssb);
