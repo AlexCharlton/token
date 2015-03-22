@@ -30,8 +30,11 @@ var download_dir = 'downloads/'
 
 db.features.createIndex({"aspect": 1})
 
-function not_admin(pass, res){
-    if (pass != process.env['TOKEN_PASSWORD']){
+var auth_string = new Buffer("admin:" + process.env['TOKEN_PASSWORD'])
+auth_string = 'Basic ' + auth_string.toString('base64')
+function not_admin(req, res){
+    var auth = req.headers.authorization
+    if (auth != auth_string){
         res.status(403).end()
         return true
     }
@@ -98,7 +101,7 @@ router.get('/org/:org', function send_org(req, res, next) {
 });
 
 router.post('/org', function create_org(req, res, next) {
-    if (not_admin(req.body.password, res)) return
+    if (not_admin(req, res)) return
     // add new org
     var id = shortid.generate();
     var o = JSON.parse(req.body.org)
@@ -121,7 +124,7 @@ router.post('/org', function create_org(req, res, next) {
 });
 
 router.put('/org/:org', function update_org(req, res, next) {
-    if (not_admin(req.body.password, res)) return
+    if (not_admin(req, res)) return
     // update org
     db.orgs.find({_id: req.params.org}, function(err, orgs){
         if (err || orgs.length == 0) {
@@ -143,8 +146,8 @@ router.put('/org/:org', function update_org(req, res, next) {
     });
 });
 
-router.delete('org/:org', function rm_org(req, res, next) {
-    if (not_admin(req.params.password, res)) return
+router.delete('/org/:org', function rm_org(req, res, next) {
+    if (not_admin(req, res)) return
     // Remove org
     db.orgs.find({_id: req.params.org}, function(err, orgs){
         if (err || orgs.length == 0) {
@@ -152,10 +155,11 @@ router.delete('org/:org', function rm_org(req, res, next) {
             return res.status(404).send("No such organization: " + req.params.org);
         }
         var org = orgs[0];
-        org.logos.forEach(function(logo){ rm_logo(logo, org._id) });
+        org.logos.forEach(function(logo){ rm_logo(logo, org._id) })
         db.orgs.remove({_id: org._id});
         fs.rmdir(path.join(logo_store, org._id))
         res.status(204).end();
+        console.log("Deleted org: ", org._id);
     });
 });
 
@@ -236,7 +240,7 @@ function mv_resize_image(src, dest, succ, error){
 }
 
 router.post('/org/:org', function create_logo(req, res, next) {
-    if (not_admin(req.body.password, res)) return
+    if (not_admin(req, res)) return
     // add new logo
     db.orgs.find({_id: req.params.org}, function(err, orgs){
         if (err || orgs.length == 0) {
@@ -300,8 +304,8 @@ router.post('/org/:org', function create_logo(req, res, next) {
     })
 })
 
-router.put('/org/:org/:logo', function update_logo(req, res, next) {
-    if (not_admin(req.body.password, res)) return
+router.put('/logo/:logo', function update_logo(req, res, next) {
+    if (not_admin(req, res)) return
     //update logo
     db.logos.find({_id: req.params.logo}, function(err, logos){
         if (err || logos.length == 0) {
@@ -364,34 +368,55 @@ router.put('/org/:org/:logo', function update_logo(req, res, next) {
     })
 })
 
-function rm_logo(logo, org_id){
+function rm_logo(logo, org_id, cb){
     db.logos.find({_id: logo}, function(err, logos){
         if (err || logos.length == 0) {
-            console.error("Tried to delete logo, but wasn't found: " + logo);
+            cb("Tried to delete logo, but wasn't found: " + logo)
         }
-        fs.unlink(logos[0].path)
-        db.logos.remove({_id: logo});
-    });
+        try {
+            fs.unlink(logos[0].file)
+        } catch (e){
+            console.error("Failed to delete logo file: ", logo, " ", logos[0].file)
+        }
+        db.logos.remove({_id: logo}, function(err){
+            if (err) return cb(err)
+            db.features.remove({_id: logo}, cb)
+        })
+    })
 }
 
-router.delete('org/:org/:logo', function rm_logo(req, res, next) {
-    if (not_admin(req.params.password, res)) return
+router.delete('/logo/:logo', function del_logo(req, res, next) {
+    if (not_admin(req, res)) return
     // Remove logo
-    var logo = req.params.logo;
-    db.orgs.find({_id: req.params.org}, function(err, orgs){
-        if (err || orgs.length == 0) {
-            console.error("No organization found: " + req.params.org);
-            return res.status(404).send("No such organization: " + req.params.org);
+    var logo_id = req.params.logo;
+    db.logos.find({_id: logo_id}, function(err, logos){
+        if (err || logos.length == 0) {
+            console.error("No logo found: " + logo_id);
+            return res.status(404).send("No such logo: " + logo_id);
         }
-        var org = orgs[0];
-        var logos = _.without(org.logos, logo);
-        if (logos.length == 0){
-            // Org have no logos? Flag review
-            db.orgs.update({_id: org._id}, {$set: {review: true}});
-        }
-        db.orgs.update({_id: org._id}, {$set: {logos: logos}});
-        rm_logo(logo, req.params.org);
-        res.status(204).end();
+        var logo = logos[0]
+        db.orgs.find({_id: logo.org}, function(err, orgs){
+            if (err || orgs.length == 0) {
+                console.error("No organization found: " + logo.org);
+                return res.status(404).send("No such organization: " + logo.org);
+            }
+            var org = orgs[0];
+            var logo_list = _.without(org.logos, logo_id);
+            if (logo_list.length == 0){
+                // Org have no logos? Flag review
+                db.orgs.update({_id: org._id}, {$set: {review: true}});
+            }
+            db.orgs.update({_id: org._id}, {$set: {logos: logo_list}});
+            rm_logo(logo_id, org._id, function(err){
+                if (err) {
+                    console.error(err)
+                    res.status(400).end();
+                } else {
+                    res.status(204).end();
+                    console.log("Deleted logo: ", logo_id);
+                }
+            })
+        })
     })
 });
 
