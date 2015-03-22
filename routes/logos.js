@@ -207,7 +207,8 @@ router.get('/logo/:logo', function send_logo(req, res, next) {
     });
 });
 
-var resize_max = 200
+var shortest_max = 200
+var hard_max = 400
 function mv_resize_image(src, dest, succ, error){
     // Make sure smallest dimension isn't larger than resize_max
     mkdirp.sync(path.dirname(dest))
@@ -217,13 +218,14 @@ function mv_resize_image(src, dest, succ, error){
             var geom = {}
             if (size.width > size.height){
                 geom.width = null
-                geom.height = resize_max
+                geom.height = shortest_max
             } else {
-                geom.width = resize_max
+                geom.width = shortest_max
                 geom.height = null
             }
             gm(src)
                 .resize(geom.width, geom.height, ">")
+                .resize(hard_max, hard_max, ">")
                 .write(dest, function(err){
                     if (err) return error(err)
                     console.log("Added image to store: ", dest)
